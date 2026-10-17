@@ -30,8 +30,12 @@ import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import StorefrontOutlinedIcon from '@mui/icons-material/StorefrontOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
+import VolumeUpOutlinedIcon from '@mui/icons-material/VolumeUpOutlined';
+import VolumeOffOutlinedIcon from '@mui/icons-material/VolumeOffOutlined';
+import Tooltip from '@mui/material/Tooltip';
 
 import { useAuth } from '../contexts/AuthContext';
+import { orderSound } from '../utils/orderSound';
 
 const DRAWER_WIDTH = 260;
 
@@ -53,6 +57,16 @@ export const AdminLayout = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isSoundMuted, setIsSoundMuted] = useState(orderSound.isMuted());
+
+  React.useEffect(() => {
+    return orderSound.onMuteChange((muted) => setIsSoundMuted(muted));
+  }, []);
+
+  const handleToggleSound = () => {
+    const next = orderSound.toggleMute();
+    setIsSoundMuted(next);
+  };
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -198,6 +212,23 @@ export const AdminLayout = () => {
           </Stack>
 
           <Stack direction="row" spacing={2} alignItems="center">
+            {/* New Order Buzzer Mute Toggle */}
+            <Tooltip title={isSoundMuted ? 'New order buzzer: Muted (Click to unmute)' : 'New order buzzer: Active (Click to mute)'}>
+              <IconButton
+                onClick={handleToggleSound}
+                size="small"
+                color="inherit"
+                aria-label="toggle order buzzer"
+                sx={{
+                  color: isSoundMuted ? 'text.disabled' : '#4f46e5',
+                  transition: 'all 0.2s ease',
+                  '&:hover': { transform: 'scale(1.08)' },
+                }}
+              >
+                {isSoundMuted ? <VolumeOffOutlinedIcon fontSize="small" /> : <VolumeUpOutlinedIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+
             <Button
               component={RouterLink}
               to="/"

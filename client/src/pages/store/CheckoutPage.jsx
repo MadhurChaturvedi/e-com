@@ -34,6 +34,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { orderService } from '../../services/orderService';
 import { authService } from '../../services/authService';
+import { orderSound } from '../../utils/orderSound';
 
 const STEPS = ['Shipping Address', 'Payment Method', 'Review & Place Order'];
 
@@ -146,6 +147,7 @@ export const CheckoutPage = () => {
 
       const res = await orderService.createOrder(payload);
       if (res.success && res.data) {
+        orderSound.playOrderPlacedSound();
         sessionStorage.removeItem('novastore_applied_coupon');
         await clearCart();
         notify('Order placed successfully! Thank you for your purchase.', 'success');
