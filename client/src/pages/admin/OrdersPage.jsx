@@ -27,6 +27,7 @@ import SearchIcon from '@mui/icons-material/Search';
 
 import { orderService } from '../../services/orderService';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useDebounce } from '../../hooks/useDebounce';
 
 const STATUS_OPTIONS = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
 
@@ -39,6 +40,7 @@ export const OrdersPage = () => {
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
 
   // Status update modal
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -52,7 +54,7 @@ export const OrdersPage = () => {
     try {
       setLoading(true);
       const params = { page, limit: 10 };
-      if (search) params.search = search;
+      if (debouncedSearch) params.search = debouncedSearch;
       if (statusFilter) params.status = statusFilter;
 
       const res = await orderService.getAllOrders(params);
@@ -69,7 +71,7 @@ export const OrdersPage = () => {
 
   useEffect(() => {
     loadOrders(1);
-  }, [search, statusFilter]);
+  }, [debouncedSearch, statusFilter]);
 
   const handleOpenStatusModal = (ord) => {
     setSelectedOrder(ord);

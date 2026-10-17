@@ -17,6 +17,7 @@ import SearchIcon from '@mui/icons-material/Search';
 
 import { dashboardService } from '../../services/dashboardService';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export const CustomersPage = () => {
   const { notify } = useNotification();
@@ -25,11 +26,12 @@ export const CustomersPage = () => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
 
   const loadCustomers = async () => {
     try {
       setLoading(true);
-      const res = await dashboardService.getCustomers({ search });
+      const res = await dashboardService.getCustomers({ search: debouncedSearch });
       if (res.success && res.data) {
         setCustomers(res.data.customers || []);
         setTotal(res.data.total || 0);
@@ -43,7 +45,7 @@ export const CustomersPage = () => {
 
   useEffect(() => {
     loadCustomers();
-  }, [search]);
+  }, [debouncedSearch]);
 
   const handleToggleStatus = async (customer) => {
     try {

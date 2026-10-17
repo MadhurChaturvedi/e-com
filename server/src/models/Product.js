@@ -120,4 +120,11 @@ const productSchema = new mongoose.Schema({
 // Text index for search
 productSchema.index({ name: 'text', description: 'text', tags: 'text' });
 
+// Compound indexes for high-concurrency queries (category filtering, price sorting, trending/featured)
+productSchema.index({ categoryId: 1, isActive: 1, price: 1 });
+productSchema.index({ brandId: 1, isActive: 1 });
+productSchema.index({ isActive: 1, isTrending: 1, createdAt: -1 });
+productSchema.index({ isActive: 1, isFeatured: 1, createdAt: -1 });
+productSchema.index({ isActive: 1, salesCount: -1, averageRating: -1 });
+
 export const Product = mongoose.model('Product', productSchema);

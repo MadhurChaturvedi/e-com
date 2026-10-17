@@ -12,10 +12,10 @@ export const authLimiter = rateLimit({
   },
 });
 
-// General API rate limiter
+// General API rate limiter (calibrated for high-traffic browsing and shared NAT/office IPs)
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 300,
+  max: 1500, // 100 req/min per IP threshold
   standardHeaders: true,
   legacyHeaders: false,
   message: {

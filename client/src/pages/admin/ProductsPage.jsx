@@ -41,6 +41,7 @@ import { productService } from '../../services/productService';
 import { categoryService } from '../../services/categoryService';
 import { brandService } from '../../services/brandService';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export const ProductsPage = () => {
   const { notify } = useNotification();
@@ -51,6 +52,7 @@ export const ProductsPage = () => {
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
 
   // Dialog State
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -77,7 +79,7 @@ export const ProductsPage = () => {
     setLoading(true);
     try {
       const [prodRes, catRes, brandRes] = await Promise.all([
-        productService.getProducts({ page, limit: 10, search, includeInactive: 'true' }),
+        productService.getProducts({ page, limit: 10, search: debouncedSearch, includeInactive: 'true' }),
         categoryService.getCategories(),
         brandService.getBrands(),
       ]);
@@ -97,7 +99,7 @@ export const ProductsPage = () => {
 
   useEffect(() => {
     loadData(1);
-  }, [search]);
+  }, [debouncedSearch]);
 
   const handleOpenCreate = () => {
     setEditingId(null);

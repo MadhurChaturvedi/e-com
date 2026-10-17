@@ -99,7 +99,9 @@ export const createOrder = async (req, res, next) => {
 
     const total = Math.max(0, subtotal - discount + shippingCharge);
 
-    // Step 4: Atomic stock decrement & inventory logging
+    // Step 4: Atomic stock decrement with compensating rollback on conflict
+    const decrementedItems = [];
+
     for (const item of orderItems) {
       const updatedProduct = await Product.findOneAndUpdate(
         { _id: item.product, stockQuantity: { $gte: item.quantity } },
@@ -113,6 +115,18 @@ export const createOrder = async (req, res, next) => {
       );
 
       if (!updatedProduct) {
+        // Rollback all previously decremented items to preserve database integrity
+        for (const prev of decrementedItems) {
+          await Product.findByIdAndUpdate(prev.product, {
+            $inc: { stockQuantity: prev.quantity, salesCount: -prev.quantity },
+          });
+          if (prev.transactionId) {
+            await InventoryTransaction.deleteOne({ _id: prev.transactionId });
+          }
+        }
+        if (appliedCouponCode) {
+          await Coupon.findOneAndUpdate({ code: appliedCouponCode }, { $inc: { usedCount: -1 } });
+        }
         return errorResponse(
           res,
           `Conflict updating inventory for "${item.name}". Please review your cart.`,
@@ -120,7 +134,7 @@ export const createOrder = async (req, res, next) => {
         );
       }
 
-      await InventoryTransaction.create({
+      const tx = await InventoryTransaction.create({
         product: item.product,
         type: 'sale',
         quantityChanged: -item.quantity,
@@ -128,6 +142,12 @@ export const createOrder = async (req, res, next) => {
         newStock: updatedProduct.stockQuantity,
         reason: 'Customer Order',
         performedBy: userId,
+      });
+
+      decrementedItems.push({
+        product: item.product,
+        quantity: item.quantity,
+        transactionId: tx._id,
       });
     }
 

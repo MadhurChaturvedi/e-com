@@ -64,11 +64,13 @@ export const StoreLayout = () => {
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [accountAnchorEl, setAccountAnchorEl] = useState(null);
 
-  // Live Instant Search State
+  // Live Instant Search State with Client-Side Cache & Request Cancellation
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const searchTimeoutRef = useRef(null);
+  const searchCacheRef = useRef(new Map());
+  const abortControllerRef = useRef(null);
 
   useEffect(() => {
     categoryService.getCategories().then(res => {
@@ -78,34 +80,62 @@ export const StoreLayout = () => {
     }).catch(() => {});
   }, []);
 
-  // Debounced Instant Search
+  // Optimized Debounced Instant Search (450ms + in-memory cache + request cancellation)
   useEffect(() => {
-    if (!searchQuery.trim() || searchQuery.trim().length < 2) {
+    const query = searchQuery.trim();
+    if (!query || query.length < 2) {
       setSearchResults([]);
       setShowSearchDropdown(false);
+      setSearchLoading(false);
+      return;
+    }
+
+    // 1. Instant Cache Check: If already searched recently, return immediately with 0 database queries
+    const cacheKey = query.toLowerCase();
+    if (searchCacheRef.current.has(cacheKey)) {
+      setSearchResults(searchCacheRef.current.get(cacheKey));
+      setShowSearchDropdown(true);
+      setSearchLoading(false);
       return;
     }
 
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    if (abortControllerRef.current) abortControllerRef.current.abort();
 
     searchTimeoutRef.current = setTimeout(async () => {
       setSearchLoading(true);
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       try {
-        const res = await productService.getProducts({ search: searchQuery.trim(), limit: 4 });
+        const res = await productService.getProducts(
+          { search: query, limit: 4 },
+          { signal: controller.signal }
+        );
         if (res.success) {
           const list = res.data?.products || (Array.isArray(res.data) ? res.data : []);
+          // Cache results in memory (keep max 60 entries)
+          if (searchCacheRef.current.size > 60) {
+            const firstKey = searchCacheRef.current.keys().next().value;
+            searchCacheRef.current.delete(firstKey);
+          }
+          searchCacheRef.current.set(cacheKey, list);
+
           setSearchResults(list);
           setShowSearchDropdown(true);
         }
       } catch (err) {
-        console.warn('Live search error:', err);
+        if (err.name !== 'CanceledError' && err.message !== 'canceled') {
+          console.warn('Live search error:', err);
+        }
       } finally {
         setSearchLoading(false);
       }
-    }, 280);
+    }, 450);
 
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, [searchQuery]);
 

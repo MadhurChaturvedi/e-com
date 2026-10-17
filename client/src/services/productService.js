@@ -1,8 +1,8 @@
 import api from './api';
 
 export const productService = {
-  async getProducts(params = {}) {
-    return api.get('/products', { params });
+  async getProducts(params = {}, config = {}) {
+    return api.get('/products', { params, ...config });
   },
 
   async getProductByIdOrSlug(idOrSlug) {

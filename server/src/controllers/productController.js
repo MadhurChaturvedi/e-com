@@ -1,4 +1,4 @@
-import mongoose from 'express';
+import mongoose from 'mongoose';
 import { Product } from '../models/Product.js';
 import { Category } from '../models/Category.js';
 import { Brand } from '../models/Brand.js';
@@ -84,13 +84,14 @@ export const getProducts = async (req, res, next) => {
     if (isFeatured === 'true') query.isFeatured = true;
     if (isTrending === 'true') query.isTrending = true;
 
-    // Search query
+    // Search query with safe regex escaping to prevent ReDoS / syntax crashes
     if (search && search.trim() !== '') {
+      const sanitizedSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       query.$or = [
-        { name: { $regex: search.trim(), $options: 'i' } },
-        { description: { $regex: search.trim(), $options: 'i' } },
-        { SKU: { $regex: search.trim(), $options: 'i' } },
-        { tags: { $in: [new RegExp(search.trim(), 'i')] } },
+        { name: { $regex: sanitizedSearch, $options: 'i' } },
+        { description: { $regex: sanitizedSearch, $options: 'i' } },
+        { SKU: { $regex: sanitizedSearch, $options: 'i' } },
+        { tags: { $in: [new RegExp(sanitizedSearch, 'i')] } },
       ];
     }
 

@@ -29,6 +29,7 @@ import { ProductCard } from '../../components/products/ProductCard';
 import { productService } from '../../services/productService';
 import { categoryService } from '../../services/categoryService';
 import { brandService } from '../../services/brandService';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export const ShopPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -53,6 +54,7 @@ export const ShopPage = () => {
 
   const [priceRange, setPriceRange] = useState([minPriceParam, maxPriceParam]);
   const [searchInput, setSearchInput] = useState(currentSearch);
+  const debouncedSearchInput = useDebounce(searchInput, 500);
 
   // Load filters metadata
   useEffect(() => {
@@ -70,6 +72,21 @@ export const ShopPage = () => {
     setSearchInput(currentSearch);
     setPriceRange([minPriceParam, maxPriceParam]);
   }, [currentSearch, minPriceParam, maxPriceParam]);
+
+  // Debounced live search auto-sync (prevents database spam on every letter typed)
+  useEffect(() => {
+    const trimmed = debouncedSearchInput.trim();
+    if (trimmed !== currentSearch.trim()) {
+      const newParams = new URLSearchParams(searchParams);
+      if (trimmed) {
+        newParams.set('search', trimmed);
+      } else {
+        newParams.delete('search');
+      }
+      newParams.set('page', '1');
+      setSearchParams(newParams);
+    }
+  }, [debouncedSearchInput]);
 
   // Fetch products from backend API
   const fetchProducts = useCallback(async () => {
