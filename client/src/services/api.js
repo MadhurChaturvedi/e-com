@@ -1,6 +1,16 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+const DEFAULT_PROD_API = 'https://e-com-np3u.vercel.app/api/v1';
+
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL;
+const isProd =
+  import.meta.env.PROD ||
+  (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'));
+
+let API_BASE_URL = rawBaseUrl;
+if (!API_BASE_URL || (isProd && API_BASE_URL.startsWith('/'))) {
+  API_BASE_URL = isProd ? DEFAULT_PROD_API : '/api/v1';
+}
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

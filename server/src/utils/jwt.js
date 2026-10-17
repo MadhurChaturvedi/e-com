@@ -32,33 +32,35 @@ export const verifyRefreshToken = (token) => {
 };
 
 export const setTokenCookies = (res, accessToken, refreshToken) => {
-  const isProduction = env.IS_PRODUCTION;
+  const isProduction = env.IS_PRODUCTION || Boolean(process.env.VERCEL);
+
+  const cookieOptions = {
+    httpOnly: true,
+    secure: Boolean(isProduction),
+    sameSite: isProduction ? 'none' : 'lax',
+  };
 
   if (accessToken) {
     res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'strict' : 'lax',
+      ...cookieOptions,
       maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
   }
 
   if (refreshToken) {
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'strict' : 'lax',
+      ...cookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
   }
 };
 
 export const clearTokenCookies = (res) => {
-  const isProduction = env.IS_PRODUCTION;
+  const isProduction = env.IS_PRODUCTION || Boolean(process.env.VERCEL);
   const cookieOptions = {
     httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? 'strict' : 'lax',
+    secure: Boolean(isProduction),
+    sameSite: isProduction ? 'none' : 'lax',
   };
 
   res.clearCookie('accessToken', cookieOptions);
