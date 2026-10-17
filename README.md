@@ -246,3 +246,39 @@ The application is a stateless Express API with MongoDB as its shared data store
 9. Serve the built client from a static hosting/CDN platform and configure SPA fallback plus the API URL through `VITE_API_BASE_URL`.
 
 The server uses in-memory rate limiting. For multi-replica production, replace it with a shared store (such as Redis) so limits are consistent across instances. API replicas also require shared upload storage; deploying more replicas without addressing these two items does not provide consistent global rate limiting or media availability. Use a managed MongoDB replica set and evaluate transaction behavior, capacity, and backup recovery for your workload before launch.
+
+---
+
+## 🔔 Order Notification Chime & Buzzer Sound
+
+NovaStore includes a lightweight, zero-dependency Web Audio API sound synthesis engine for order confirmations and seller/admin order arrival alerts (`client/src/utils/orderSound.js`).
+
+### How It Works
+- **Order Confirmation**: When an order is successfully placed via `CheckoutPage`, it plays a pleasant ascending two-tone chime (`C5` 523.25 Hz &rarr; `G5` 783.99 Hz) for ~0.45s at a moderate volume (0.45).
+- **Admin Order Buzzer**: In the Admin Dashboard (`DashboardPage`), when a newly placed order is detected via polling, an alert chirp (`659.25` Hz &rarr; `880` Hz) sounds to notify staff.
+- **Autoplay Compliance**: Unlocks the browser's `AudioContext` on the first user click/touch/keypress and handles blocked autoplay gracefully without throwing errors.
+- **Mute Preference**: Saved in `localStorage` under `novastore_sound_muted` and toggleable via the speaker icon in the store header or admin navigation bar.
+
+### Customizing or Replacing the Sound
+1. **Change Pitch & Frequencies**:
+   In `client/src/utils/orderSound.js`, locate `playOrderPlacedSound()`:
+   ```javascript
+   osc1.frequency.setValueAtTime(523.25, now); // First tone (Hz)
+   osc2.frequency.setValueAtTime(783.99, now + 0.12); // Second tone (Hz)
+   ```
+2. **Adjust Volume & Duration**:
+   Update `masterGain.gain.setValueAtTime(0.45, now)` (range `0.0` to `1.0`) or change the stop timing (under 1 second).
+3. **Use a Custom Audio File (e.g. MP3/WAV)**:
+   If you prefer an external audio file, replace the oscillator logic inside `playOrderPlacedSound()` with:
+   ```javascript
+   const audio = new Audio('/sounds/chime.mp3');
+   audio.volume = 0.5;
+   audio.play().catch(() => {});
+   ```
+
+### How to Test
+1. Add an item to your cart and proceed to Checkout (`/checkout`).
+2. Complete shipping details, select Payment Method, and click **Place Order**.
+3. Upon receiving the successful API response, the confirmation chime will play.
+4. Toggle the speaker icon in the top header to mute; place another order to verify it stays silent.
+

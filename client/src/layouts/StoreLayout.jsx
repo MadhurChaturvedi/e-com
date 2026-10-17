@@ -44,6 +44,9 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
+import VolumeUpOutlinedIcon from '@mui/icons-material/VolumeUpOutlined';
+import VolumeOffOutlinedIcon from '@mui/icons-material/VolumeOffOutlined';
+import Tooltip from '@mui/material/Tooltip';
 
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
@@ -51,6 +54,7 @@ import { useWishlist } from '../contexts/WishlistContext';
 import { categoryService } from '../services/categoryService';
 import { productService } from '../services/productService';
 import { MegaSearchDropdown } from '../components/common/MegaSearchDropdown';
+import { orderSound } from '../utils/orderSound';
 
 export const StoreLayout = () => {
   const navigate = useNavigate();
@@ -63,6 +67,16 @@ export const StoreLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [accountAnchorEl, setAccountAnchorEl] = useState(null);
+  const [isSoundMuted, setIsSoundMuted] = useState(orderSound.isMuted());
+
+  useEffect(() => {
+    return orderSound.onMuteChange((muted) => setIsSoundMuted(muted));
+  }, []);
+
+  const handleToggleSound = () => {
+    const next = orderSound.toggleMute();
+    setIsSoundMuted(next);
+  };
 
   useEffect(() => {
     categoryService.getCategories().then(res => {
@@ -226,6 +240,23 @@ export const StoreLayout = () => {
 
             {/* Action Icons: Wishlist, Cart Drawer Trigger, Profile */}
             <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
+              {/* Order Sound Mute/Unmute Toggle */}
+              <Tooltip title={isSoundMuted ? 'Order chime: Muted (Click to unmute)' : 'Order chime: Active (Click to mute)'}>
+                <IconButton
+                  onClick={handleToggleSound}
+                  color="inherit"
+                  size="small"
+                  aria-label="toggle order sound"
+                  sx={{
+                    color: isSoundMuted ? 'text.disabled' : 'text.secondary',
+                    transition: 'all 0.2s ease',
+                    '&:hover': { color: 'primary.main', transform: 'scale(1.08)' },
+                  }}
+                >
+                  {isSoundMuted ? <VolumeOffOutlinedIcon fontSize="small" /> : <VolumeUpOutlinedIcon fontSize="small" />}
+                </IconButton>
+              </Tooltip>
+
               {/* Wishlist Icon */}
               <IconButton
                 component={RouterLink}

@@ -29,15 +29,19 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
 import { dashboardService } from '../../services/dashboardService';
+import { orderSound } from '../../utils/orderSound';
+import { useNotification } from '../../contexts/NotificationContext';
 
 export const DashboardPage = () => {
   const navigate = useNavigate();
+  const { notify } = useNotification();
 
   const [stats, setStats] = useState(null);
   const [salesData, setSalesData] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const knownOrdersRef = React.useRef(new Set());
 
   useEffect(() => {
     Promise.all([
@@ -50,11 +54,36 @@ export const DashboardPage = () => {
         if (statsRes.success) setStats(statsRes.data);
         if (salesRes.success) setSalesData(salesRes.data);
         if (topRes.success) setTopProducts(topRes.data);
-        if (recentRes.success) setRecentOrders(recentRes.data);
+        if (recentRes.success && Array.isArray(recentRes.data)) {
+          setRecentOrders(recentRes.data);
+          recentRes.data.forEach(o => knownOrdersRef.current.add(o._id));
+        }
       })
       .catch(err => console.warn('Error loading dashboard metrics:', err))
       .finally(() => setLoading(false));
   }, []);
+
+  // Periodic polling for newly arrived orders
+  useEffect(() => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const recentRes = await dashboardService.getRecentOrders();
+        if (recentRes.success && Array.isArray(recentRes.data)) {
+          const incoming = recentRes.data;
+          const hasNewOrder = incoming.some(o => !knownOrdersRef.current.has(o._id));
+          if (hasNewOrder && knownOrdersRef.current.size > 0) {
+            orderSound.playNewOrderNotificationSound();
+            notify('🔔 New order received!', 'info');
+            setRecentOrders(incoming);
+            dashboardService.getStats().then(s => s.success && setStats(s.data));
+          }
+          incoming.forEach(o => knownOrdersRef.current.add(o._id));
+        }
+      } catch {}
+    }, 20000);
+
+    return () => clearInterval(pollInterval);
+  }, [notify]);
 
   if (loading) {
     return (
