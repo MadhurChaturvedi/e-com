@@ -10,6 +10,8 @@ import { errorHandler } from './middlewares/error.middleware.js';
 import { apiLimiter } from './middlewares/rateLimit.middleware.js';
 import { storageService } from './services/storageService.js';
 
+import { connectDB } from './config/db.js';
+
 const app = express();
 app.set('trust proxy', env.TRUST_PROXY);
 
@@ -27,17 +29,26 @@ app.use(
 );
 
 // CORS configuration with credentials support
-const allowedOrigins = new Set(env.CLIENT_URLS);
-if (!env.IS_PRODUCTION) {
-  ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000'].forEach(origin =>
-    allowedOrigins.add(origin)
-  );
-}
+const allowedOrigins = new Set([
+  ...env.CLIENT_URLS,
+  'https://e-com-phi-beige.vercel.app',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:3000',
+]);
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.has(origin)) return true;
+  // Automatically allow any Vercel deployment of this frontend
+  if (origin.endsWith('.vercel.app')) return true;
+  return false;
+};
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.has(origin)) {
+      if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
       return callback(null, false);
@@ -69,6 +80,26 @@ app.get('/health/live', (req, res) => {
 app.get('/health/ready', (req, res) => {
   const payload = healthPayload();
   res.status(payload.status === 'healthy' ? 200 : 503).json(payload);
+});
+
+// Ensure MongoDB connection for serverless / Vercel request lifecycle
+app.use(async (req, res, next) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      await connectDB();
+    }
+    next();
+  } catch (err) {
+    console.error('[Serverless DB Error]:', err.message);
+    if (req.path.startsWith('/health')) {
+      return next();
+    }
+    return res.status(503).json({
+      success: false,
+      message: 'Database connection currently unavailable. Please verify MONGODB_URI in Vercel.',
+      error: err.message,
+    });
+  }
 });
 
 // Rate limiter for API
