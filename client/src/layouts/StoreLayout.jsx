@@ -50,6 +50,7 @@ import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { categoryService } from '../services/categoryService';
 import { productService } from '../services/productService';
+import { MegaSearchDropdown } from '../components/common/MegaSearchDropdown';
 
 export const StoreLayout = () => {
   const navigate = useNavigate();
@@ -59,18 +60,9 @@ export const StoreLayout = () => {
   const { wishlistCount } = useWishlist();
 
   const [categories, setCategories] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [accountAnchorEl, setAccountAnchorEl] = useState(null);
-
-  // Live Instant Search State with Client-Side Cache & Request Cancellation
-  const [searchResults, setSearchResults] = useState([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
-  const searchTimeoutRef = useRef(null);
-  const searchCacheRef = useRef(new Map());
-  const abortControllerRef = useRef(null);
 
   useEffect(() => {
     categoryService.getCategories().then(res => {
@@ -80,85 +72,12 @@ export const StoreLayout = () => {
     }).catch(() => {});
   }, []);
 
-  // Optimized Debounced Instant Search (450ms + in-memory cache + request cancellation)
-  useEffect(() => {
-    const query = searchQuery.trim();
-    if (!query || query.length < 2) {
-      setSearchResults([]);
-      setShowSearchDropdown(false);
-      setSearchLoading(false);
-      return;
-    }
-
-    // 1. Instant Cache Check: If already searched recently, return immediately with 0 database queries
-    const cacheKey = query.toLowerCase();
-    if (searchCacheRef.current.has(cacheKey)) {
-      setSearchResults(searchCacheRef.current.get(cacheKey));
-      setShowSearchDropdown(true);
-      setSearchLoading(false);
-      return;
-    }
-
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    if (abortControllerRef.current) abortControllerRef.current.abort();
-
-    searchTimeoutRef.current = setTimeout(async () => {
-      setSearchLoading(true);
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-
-      try {
-        const res = await productService.getProducts(
-          { search: query, limit: 4 },
-          { signal: controller.signal }
-        );
-        if (res.success) {
-          const list = res.data?.products || (Array.isArray(res.data) ? res.data : []);
-          // Cache results in memory (keep max 60 entries)
-          if (searchCacheRef.current.size > 60) {
-            const firstKey = searchCacheRef.current.keys().next().value;
-            searchCacheRef.current.delete(firstKey);
-          }
-          searchCacheRef.current.set(cacheKey, list);
-
-          setSearchResults(list);
-          setShowSearchDropdown(true);
-        }
-      } catch (err) {
-        if (err.name !== 'CanceledError' && err.message !== 'canceled') {
-          console.warn('Live search error:', err);
-        }
-      } finally {
-        setSearchLoading(false);
-      }
-    }, 450);
-
-    return () => {
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-      if (abortControllerRef.current) abortControllerRef.current.abort();
-    };
-  }, [searchQuery]);
-
   const handleAccountMenuOpen = (e) => {
     setAccountAnchorEl(e.currentTarget);
   };
 
   const handleAccountMenuClose = () => {
     setAccountAnchorEl(null);
-  };
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    setShowSearchDropdown(false);
-    if (searchQuery.trim()) {
-      navigate(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
-
-  const handleSelectSearchResult = (product) => {
-    setShowSearchDropdown(false);
-    setSearchQuery('');
-    navigate(`/product/${product.slug || product._id}`);
   };
 
   const handleLogout = async () => {
@@ -300,113 +219,10 @@ export const StoreLayout = () => {
               </Button>
             </Stack>
 
-            {/* Live Search Bar with Instant Suggestions */}
-            <ClickAwayListener onClickAway={() => setShowSearchDropdown(false)}>
-              <Box
-                component="form"
-                onSubmit={handleSearchSubmit}
-                sx={{
-                  position: 'relative',
-                  flexGrow: 1,
-                  maxWidth: { xs: '100%', sm: 440 },
-                  mx: { xs: 0, md: 'auto' },
-                  display: { xs: 'none', md: 'block' },
-                }}
-              >
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: '3px 10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    borderRadius: 2.5,
-                    border: '1px solid rgba(226, 232, 240, 0.9)',
-                    backgroundColor: '#f8fafc',
-                    transition: 'all 0.2s ease',
-                    '&:focus-within': {
-                      borderColor: '#4f46e5',
-                      boxShadow: '0 0 0 3px rgba(79, 70, 229, 0.12)',
-                      backgroundColor: '#ffffff',
-                    },
-                  }}
-                >
-                  <InputBase
-                    sx={{ ml: 1, flex: 1, fontSize: '0.88rem' }}
-                    placeholder="Search electronics, audio, apparel..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={() => searchQuery.trim().length >= 2 && setShowSearchDropdown(true)}
-                  />
-                  {searchLoading ? (
-                    <CircularProgress size={18} sx={{ color: 'secondary.main', mr: 1 }} />
-                  ) : (
-                    <IconButton type="submit" sx={{ p: '6px', color: 'secondary.main' }}>
-                      <SearchIcon fontSize="small" />
-                    </IconButton>
-                  )}
-                </Paper>
-
-                {/* Instant Search Dropdown Results */}
-                {showSearchDropdown && searchResults.length > 0 && (
-                  <Paper
-                    elevation={4}
-                    sx={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      mt: 1,
-                      zIndex: 1400,
-                      borderRadius: 3,
-                      p: 1.5,
-                      border: '1px solid rgba(226, 232, 240, 0.9)',
-                      backgroundColor: '#ffffff',
-                    }}
-                  >
-                    <Typography variant="caption" sx={{ px: 1, color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase' }}>
-                      Suggested Products ({searchResults.length})
-                    </Typography>
-                    <List sx={{ p: 0, mt: 0.5 }}>
-                      {searchResults.map((item) => (
-                        <ListItem
-                          key={item._id}
-                          disablePadding
-                          sx={{
-                            borderRadius: 2,
-                            overflow: 'hidden',
-                            mb: 0.5,
-                            '&:hover': { backgroundColor: '#f8fafc' },
-                          }}
-                        >
-                          <ListItemButton onClick={() => handleSelectSearchResult(item)} sx={{ py: 0.8, px: 1 }}>
-                            <Box
-                              component="img"
-                              src={item.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=100&q=80'}
-                              alt={item.name}
-                              sx={{ width: 40, height: 40, borderRadius: 1.5, objectFit: 'cover', mr: 1.5 }}
-                            />
-                            <ListItemText
-                              primary={item.name}
-                              secondary={`$${item.price?.toFixed(2)}`}
-                              primaryTypographyProps={{ variant: 'body2', fontWeight: 700, noWrap: true }}
-                              secondaryTypographyProps={{ variant: 'caption', fontWeight: 700, color: 'secondary.main' }}
-                            />
-                          </ListItemButton>
-                        </ListItem>
-                      ))}
-                    </List>
-                    <Button
-                      fullWidth
-                      size="small"
-                      onClick={handleSearchSubmit}
-                      sx={{ mt: 0.5, fontWeight: 700, textTransform: 'none', color: 'secondary.main' }}
-                    >
-                      View all results for "{searchQuery}" &rarr;
-                    </Button>
-                  </Paper>
-                )}
-              </Box>
-            </ClickAwayListener>
+            {/* Google-style Mega Dropdown Search */}
+            <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, justifyContent: 'center', mx: { xs: 0, md: 3 } }}>
+              <MegaSearchDropdown />
+            </Box>
 
             {/* Action Icons: Wishlist, Cart Drawer Trigger, Profile */}
             <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
@@ -554,33 +370,9 @@ export const StoreLayout = () => {
             </Stack>
           </Toolbar>
 
-          {/* Mobile Search Bar */}
-          <Box
-            component="form"
-            onSubmit={handleSearchSubmit}
-            sx={{ display: { xs: 'block', md: 'none' }, pb: 1.5 }}
-          >
-            <Paper
-              elevation={0}
-              sx={{
-                px: 1.2,
-                display: 'flex',
-                alignItems: 'center',
-                borderRadius: 2,
-                border: '1px solid rgba(226, 232, 240, 0.9)',
-                backgroundColor: '#f8fafc',
-              }}
-            >
-              <InputBase
-                sx={{ ml: 1, flex: 1, fontSize: '0.88rem' }}
-                placeholder="Search products, brands..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
-              <IconButton type="submit" sx={{ p: '6px', color: 'secondary.main' }}>
-                <SearchIcon fontSize="small" />
-              </IconButton>
-            </Paper>
+          {/* Mobile Mega Search Bar */}
+          <Box sx={{ display: { xs: 'block', md: 'none' }, pb: 1.5, px: 0.5 }}>
+            <MegaSearchDropdown fullWidthMobile />
           </Box>
 
           {/* Sub-header Categories Bar (Desktop) */}
