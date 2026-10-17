@@ -149,7 +149,7 @@ export const HomePage = () => {
   return (
     <Box sx={{ pb: 6 }}>
       {/* 1. Dynamic Homepage Promotional Slider */}
-      <HeroSlider banners={data.banners} />
+      <HeroSlider banners={data.banners} loading={loading} />
 
       <Container maxWidth="xl">
         {/* Trust Value Signals Strip */}
