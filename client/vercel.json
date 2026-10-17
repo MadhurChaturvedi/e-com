@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://e-com-np3u.vercel.app/api/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://e-com-np3u.vercel.app/uploads/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

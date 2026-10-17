@@ -11,12 +11,19 @@ const cleanBaseUrl = (url) => {
 };
 
 const rawBaseUrl = import.meta.env.VITE_API_BASE_URL;
-const isProd =
-  import.meta.env.PROD ||
-  (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app'));
+const isBrowser = typeof window !== 'undefined';
+const isVercel = isBrowser && window.location.hostname.includes('vercel.app');
+const isProd = Boolean(import.meta.env.PROD || isVercel);
 
 let API_BASE_URL = cleanBaseUrl(rawBaseUrl);
-if (!API_BASE_URL || (isProd && API_BASE_URL.startsWith('/'))) {
+
+// Never allow localhost or 127.0.0.1 when running on deployed environments (*.vercel.app or production)
+const pointsToLocalhost =
+  API_BASE_URL.includes('localhost') ||
+  API_BASE_URL.includes('127.0.0.1') ||
+  API_BASE_URL.includes('0.0.0.0');
+
+if (!API_BASE_URL || (isProd && (API_BASE_URL.startsWith('/') || pointsToLocalhost))) {
   API_BASE_URL = isProd ? DEFAULT_PROD_API : '/api/v1';
 }
 

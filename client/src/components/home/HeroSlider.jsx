@@ -43,9 +43,13 @@ export const HeroSlider = ({ banners: propBanners = null, loading: propLoading =
 
   // Synchronize incoming propBanners
   useEffect(() => {
-    if (Array.isArray(propBanners) && propBanners.length > 0) {
-      setBanners(propBanners);
-      setLoading(false);
+    if (Array.isArray(propBanners)) {
+      if (propBanners.length > 0) {
+        setBanners(propBanners);
+      } else if (!propLoading) {
+        setBanners([fallbackBanner]);
+      }
+      setLoading(Boolean(propLoading));
       return;
     }
 
