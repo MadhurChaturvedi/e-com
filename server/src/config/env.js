@@ -38,7 +38,12 @@ for (const value of clientUrls) {
   if (!['http:', 'https:'].includes(parsedUrl.protocol) || parsedUrl.origin !== value) {
     throw new Error('CLIENT_URL entries must be HTTP(S) origins without paths.');
   }
-  if (nodeEnv === 'production' && parsedUrl.protocol !== 'https:') {
+  if (
+    nodeEnv === 'production' &&
+    parsedUrl.protocol !== 'https:' &&
+    !parsedUrl.hostname.includes('localhost') &&
+    parsedUrl.hostname !== '127.0.0.1'
+  ) {
     throw new Error('CLIENT_URL origins must use HTTPS in production.');
   }
 }
