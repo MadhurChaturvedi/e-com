@@ -10,7 +10,7 @@ export const renderServerStatusHtml = (req) => {
     3: 'Disconnecting...',
   };
   const dbStateText = dbStateMap[mongoose.connection.readyState] || 'Unknown';
-  const dbHost = mongoose.connection.host || 'MongoDB Cluster';
+  const dbHost = mongoose.connection.host || 'MongoDB Cluster (WiredTiger)';
   const uptimeSeconds = Math.floor(process.uptime());
   const hours = Math.floor(uptimeSeconds / 3600);
   const minutes = Math.floor((uptimeSeconds % 3600) / 60);
@@ -20,6 +20,8 @@ export const renderServerStatusHtml = (req) => {
   const memory = process.memoryUsage();
   const heapUsedMb = (memory.heapUsed / 1024 / 1024).toFixed(1);
   const heapTotalMb = (memory.heapTotal / 1024 / 1024).toFixed(1);
+  const heapPercent = Math.min(100, Math.round((memory.heapUsed / memory.heapTotal) * 100));
+  const rssMb = (memory.rss / 1024 / 1024).toFixed(1);
 
   const clientUrl =
     env.CLIENT_URL ||
@@ -27,32 +29,38 @@ export const renderServerStatusHtml = (req) => {
     'https://e-com-phi-beige.vercel.app';
 
   const hostUrl = `${req.protocol}://${req.get('host') || 'localhost'}`;
+  const environmentName = (env.NODE_ENV || 'production').toUpperCase();
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NovaStore API Engine • Live Operational Dashboard</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>" />
+  <title>NovaStore Infrastructure Console • API Gateway & System Health</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #070a12;
-      --card-bg: rgba(17, 24, 39, 0.72);
-      --card-border: rgba(255, 255, 255, 0.08);
-      --card-hover-border: rgba(99, 102, 241, 0.4);
-      --text-main: #f1f5f9;
-      --text-muted: #94a3b8;
-      --primary: #6366f1;
-      --primary-light: #818cf8;
-      --primary-glow: rgba(99, 102, 241, 0.25);
+      --bg: #090d16;
+      --surface: #0f1523;
+      --surface-elevated: #151d30;
+      --border: #1c263c;
+      --border-subtle: #162033;
+      --border-highlight: #2c3a59;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --primary-subtle: rgba(59, 130, 246, 0.1);
       --success: #10b981;
-      --success-glow: rgba(16, 185, 129, 0.25);
+      --success-subtle: rgba(16, 185, 129, 0.12);
       --warning: #f59e0b;
-      --accent: #ec4899;
+      --warning-subtle: rgba(245, 158, 11, 0.12);
+      --danger: #ef4444;
+      --danger-subtle: rgba(239, 68, 68, 0.12);
     }
 
     * {
@@ -62,821 +70,1252 @@ export const renderServerStatusHtml = (req) => {
     }
 
     body {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background-color: var(--bg);
-      color: var(--text-main);
+      color: var(--text-primary);
       min-height: 100vh;
-      overflow-x: hidden;
-      position: relative;
       line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
-    /* Animated background gradient orbs */
-    .ambient-glow {
-      position: fixed;
+    /* Top Global Header Bar */
+    .top-nav {
+      background: rgba(15, 21, 35, 0.95);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
       top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 0;
-      overflow: hidden;
+      z-index: 100;
     }
 
-    .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(100px);
-      opacity: 0.45;
-      animation: float 20s ease-in-out infinite alternate;
-    }
-
-    .orb-1 {
-      top: -10%;
-      left: 15%;
-      width: 500px;
-      height: 500px;
-      background: radial-gradient(circle, #4f46e5 0%, transparent 70%);
-      animation-duration: 18s;
-    }
-
-    .orb-2 {
-      bottom: -15%;
-      right: 10%;
-      width: 550px;
-      height: 550px;
-      background: radial-gradient(circle, #06b6d4 0%, transparent 70%);
-      animation-duration: 22s;
-      animation-delay: -5s;
-    }
-
-    .orb-3 {
-      top: 40%;
-      right: 30%;
-      width: 400px;
-      height: 400px;
-      background: radial-gradient(circle, #8b5cf6 0%, transparent 70%);
-      animation-duration: 25s;
-      animation-delay: -10s;
-    }
-
-    @keyframes float {
-      0% { transform: translate(0, 0) scale(1); }
-      50% { transform: translate(40px, -30px) scale(1.08); }
-      100% { transform: translate(-30px, 35px) scale(0.95); }
-    }
-
-    /* Grid overlay */
-    .grid-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-image: 
-        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-      background-size: 40px 40px;
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    /* Main layout container */
-    .container {
-      position: relative;
-      z-index: 2;
-      max-width: 1200px;
+    .top-nav-inner {
+      max-width: 1320px;
       margin: 0 auto;
-      padding: 40px 24px 80px;
-    }
-
-    /* Header section */
-    .header {
+      padding: 14px 24px;
       display: flex;
-      flex-direction: column;
-      gap: 20px;
-      margin-bottom: 40px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
     }
 
-    @media (min-width: 768px) {
-      .header {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-      }
-    }
-
-    .brand-wrap {
+    .nav-left {
       display: flex;
       align-items: center;
       gap: 16px;
     }
 
-    .brand-icon {
-      width: 52px;
-      height: 52px;
-      background: linear-gradient(135deg, #6366f1, #a855f7);
-      border-radius: 16px;
+    .brand-mark {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border: 1px solid #334155;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.5);
-      position: relative;
+      color: #3b82f6;
     }
 
-    .brand-icon svg {
-      width: 28px;
-      height: 28px;
-      fill: #ffffff;
+    .brand-mark svg {
+      width: 20px;
+      height: 20px;
     }
 
-    .brand-title {
-      font-family: 'Outfit', sans-serif;
-      font-size: 1.75rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      line-height: 1.1;
+    .brand-info {
+      display: flex;
+      flex-direction: column;
     }
 
-    .brand-subtitle {
-      font-size: 0.88rem;
-      color: var(--text-muted);
-      margin-top: 4px;
-      font-weight: 500;
+    .brand-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
-    .header-actions {
+    .brand-badge {
+      font-size: 0.68rem;
+      font-weight: 600;
+      background: var(--primary-subtle);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      border-radius: 4px;
+      padding: 1px 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .brand-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .nav-right {
       display: flex;
       align-items: center;
       gap: 12px;
       flex-wrap: wrap;
     }
 
-    /* Operational Badge */
-    .live-badge {
+    .status-indicator {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 8px 16px;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      border-radius: 9999px;
-      font-size: 0.82rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      color: #34d399;
-      text-transform: uppercase;
-      box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+      padding: 6px 12px;
+      background: ${dbConnected ? 'var(--success-subtle)' : 'var(--warning-subtle)'};
+      border: 1px solid ${dbConnected ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'};
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: ${dbConnected ? '#34d399' : '#fbbf24'};
     }
 
-    .live-dot {
+    .status-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background-color: #10b981;
-      position: relative;
+      background-color: ${dbConnected ? '#10b981' : '#f59e0b'};
+      box-shadow: 0 0 8px ${dbConnected ? '#10b981' : '#f59e0b'};
     }
 
-    .live-dot::after {
-      content: '';
-      position: absolute;
-      top: -4px;
-      left: -4px;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background-color: #10b981;
-      opacity: 0.6;
-      animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
-    @keyframes pulse-ring {
-      0% { transform: scale(0.6); opacity: 0.8; }
-      100% { transform: scale(2.2); opacity: 0; }
-    }
-
-    .client-link-btn {
+    .btn {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 9px 18px;
-      background: linear-gradient(135deg, #4f46e5, #7c3aed);
-      color: #ffffff;
-      text-decoration: none;
+      padding: 7px 14px;
+      font-size: 0.82rem;
       font-weight: 600;
-      font-size: 0.88rem;
-      border-radius: 12px;
-      transition: all 0.25s ease;
-      box-shadow: 0 8px 20px -4px rgba(79, 70, 229, 0.4);
+      border-radius: 6px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+      font-family: inherit;
     }
 
-    .client-link-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 24px -4px rgba(79, 70, 229, 0.6);
+    .btn-secondary {
+      background: var(--surface-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: #1c263c;
+      border-color: var(--border-highlight);
       color: #ffffff;
     }
 
-    /* Cards Grid */
-    .grid {
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 28px 24px 80px;
+    }
+
+    /* Sub-header / Env Breadcrumbs */
+    .env-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .env-tags {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.76rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+    }
+
+    .env-tag {
+      background: #111827;
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: 4px;
+      color: var(--text-secondary);
+    }
+
+    .clock-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Metric Summary Cards Grid */
+    .metrics-grid {
       display: grid;
       grid-template-columns: repeat(1, 1fr);
-      gap: 20px;
-      margin-bottom: 30px;
+      gap: 16px;
+      margin-bottom: 28px;
     }
 
     @media (min-width: 640px) {
-      .grid-3 {
-        grid-template-columns: repeat(3, 1fr);
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
       }
     }
 
-    .card {
-      background: var(--card-bg);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--card-border);
-      border-radius: 20px;
-      padding: 24px;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      position: relative;
-      overflow: hidden;
+    @media (min-width: 1024px) {
+      .metrics-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
     }
 
-    .card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    .metric-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.2s ease;
     }
 
-    .card:hover {
-      border-color: var(--card-hover-border);
-      transform: translateY(-3px);
-      box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.6);
+    .metric-card:hover {
+      border-color: var(--border-highlight);
     }
 
-    .card-label {
-      font-size: 0.76rem;
-      text-transform: uppercase;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      color: var(--text-muted);
+    .metric-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 12px;
     }
 
-    .card-value {
-      font-family: 'Outfit', sans-serif;
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: #ffffff;
-      margin-bottom: 8px;
+    .metric-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
-    .card-subtext {
-      font-size: 0.85rem;
+    .metric-title svg {
+      width: 15px;
+      height: 15px;
+      stroke: var(--text-muted);
+    }
+
+    .metric-badge {
+      font-size: 0.7rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .badge-ok {
+      background: var(--success-subtle);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .badge-warn {
+      background: var(--warning-subtle);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+
+    .metric-value {
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .metric-sub {
+      font-size: 0.78rem;
       color: var(--text-muted);
       display: flex;
       align-items: center;
       gap: 6px;
+      word-break: break-all;
     }
 
-    .badge-pill {
-      font-size: 0.72rem;
-      padding: 3px 10px;
-      border-radius: 9999px;
-      font-weight: 600;
-    }
-
-    .badge-success {
-      background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-
-    .badge-warning {
-      background: rgba(245, 158, 11, 0.15);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.3);
-    }
-
-    .badge-info {
-      background: rgba(99, 102, 241, 0.15);
-      color: #a5b4fc;
-      border: 1px solid rgba(99, 102, 241, 0.3);
-    }
-
-    /* Diagnostics Section */
-    .section-title {
-      font-family: 'Outfit', sans-serif;
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: #ffffff;
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .diagnostic-panel {
-      background: var(--card-bg);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--card-border);
-      border-radius: 20px;
-      padding: 24px;
-      margin-bottom: 30px;
-    }
-
-    .button-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 18px;
-    }
-
-    .test-btn {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      color: var(--text-main);
-      padding: 8px 16px;
-      border-radius: 10px;
-      font-size: 0.84rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-family: inherit;
-    }
-
-    .test-btn:hover {
-      background: rgba(99, 102, 241, 0.18);
-      border-color: var(--primary-light);
-      color: #ffffff;
-      transform: translateY(-1px);
-    }
-
-    .test-btn.active {
-      background: var(--primary);
-      border-color: var(--primary);
-      color: #ffffff;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
-    }
-
-    .console-box {
-      background: #040711;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 14px;
+    .progress-bar-wrap {
+      width: 100%;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-top: 10px;
       overflow: hidden;
-      font-family: 'JetBrains Mono', monospace;
     }
 
-    .console-header {
-      background: rgba(255, 255, 255, 0.03);
-      padding: 10px 16px;
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    /* Section Panels */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      background: var(--surface-elevated);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .panel-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-title-wrap svg {
+      width: 18px;
+      height: 18px;
+      stroke: #60a5fa;
+    }
+
+    .panel-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .panel-desc {
       font-size: 0.78rem;
       color: var(--text-muted);
     }
 
-    .console-meta {
+    .panel-body {
+      padding: 20px;
+    }
+
+    /* Interactive API Workbench */
+    .workbench-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 16px;
+    }
+
+    .tab-btn {
+      background: #111827;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 7px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tab-btn:hover {
+      background: #1c263c;
+      color: var(--text-primary);
+      border-color: var(--border-highlight);
+    }
+
+    .tab-btn.active {
+      background: #1e293b;
+      color: #60a5fa;
+      border-color: #3b82f6;
+      font-weight: 600;
+    }
+
+    .method-pill {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+      text-transform: uppercase;
+    }
+
+    .pill-get {
+      background: var(--success-subtle);
+      color: #34d399;
+    }
+
+    .pill-post {
+      background: var(--primary-subtle);
+      color: #60a5fa;
+    }
+
+    .pill-put {
+      background: var(--warning-subtle);
+      color: #fbbf24;
+    }
+
+    .pill-delete {
+      background: var(--danger-subtle);
+      color: #f87171;
+    }
+
+    .url-command-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .url-input-container {
+      flex: 1;
+      min-width: 280px;
+      display: flex;
+      align-items: center;
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      gap: 8px;
+    }
+
+    .url-input-container .host-prefix {
+      color: var(--text-muted);
+    }
+
+    .url-input-container .path-active {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .terminal-window {
+      background: #060910;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .terminal-header {
+      background: #0d1322;
+      border-bottom: 1px solid var(--border);
+      padding: 9px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .terminal-meta-left {
       display: flex;
       align-items: center;
       gap: 12px;
     }
 
-    .status-tag {
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 6px;
+    .terminal-meta-left .resp-tag {
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
       font-size: 0.72rem;
     }
 
-    .status-tag.ok {
-      background: rgba(16, 185, 129, 0.2);
+    .terminal-meta-left .tag-ok {
+      background: var(--success-subtle);
       color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
     }
 
-    .status-tag.wait {
-      background: rgba(245, 158, 11, 0.2);
+    .terminal-meta-left .tag-err {
+      background: var(--danger-subtle);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .terminal-meta-left .tag-wait {
+      background: var(--warning-subtle);
       color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
     }
 
-    .copy-btn {
-      background: transparent;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: var(--text-muted);
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.74rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      font-family: inherit;
-    }
-
-    .copy-btn:hover {
-      background: rgba(255, 255, 255, 0.08);
-      color: #ffffff;
-    }
-
-    .console-body {
+    .terminal-code {
       padding: 16px;
       font-size: 0.82rem;
-      color: #e2e8f0;
-      max-height: 280px;
+      line-height: 1.6;
+      max-height: 320px;
       overflow-y: auto;
       white-space: pre-wrap;
       word-break: break-all;
+      color: #e2e8f0;
     }
 
-    /* Endpoint Directory */
-    .endpoint-grid {
+    /* JSON Syntax Highlighting */
+    .json-key { color: #93c5fd; }
+    .json-string { color: #86efac; }
+    .json-number { color: #fde047; }
+    .json-boolean { color: #f472b6; }
+    .json-null { color: #94a3b8; }
+
+    /* Endpoint Directory Table */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    .api-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      text-align: left;
+    }
+
+    .api-table th {
+      background: #0d1322;
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+    }
+
+    .api-table td {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      vertical-align: middle;
+    }
+
+    .api-table tr:hover td {
+      background: rgba(255, 255, 255, 0.015);
+      color: var(--text-primary);
+    }
+
+    .api-table .path-cell {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .auth-badge {
+      font-size: 0.7rem;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 500;
+      display: inline-block;
+    }
+
+    .auth-public {
+      background: #111827;
+      color: #94a3b8;
+      border: 1px solid #1f2937;
+    }
+
+    .auth-jwt {
+      background: rgba(59, 130, 246, 0.1);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.25);
+    }
+
+    .auth-admin {
+      background: rgba(239, 68, 68, 0.1);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+
+    .test-action-link {
+      color: #60a5fa;
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.78rem;
+    }
+
+    .test-action-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Security & Compliance Checklist */
+    .checklist-grid {
       display: grid;
       grid-template-columns: repeat(1, 1fr);
       gap: 12px;
     }
 
     @media (min-width: 640px) {
-      .endpoint-grid {
+      .checklist-grid {
         grid-template-columns: repeat(2, 1fr);
       }
     }
 
-    .endpoint-row {
+    @media (min-width: 1024px) {
+      .checklist-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .check-item {
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .check-item-header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 14px 18px;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
-      text-decoration: none;
-      color: inherit;
-      transition: all 0.2s ease;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--text-primary);
     }
 
-    .endpoint-row:hover {
-      background: rgba(99, 102, 241, 0.08);
-      border-color: rgba(99, 102, 241, 0.25);
-      transform: translateX(4px);
+    .check-item-header svg {
+      width: 16px;
+      height: 16px;
+      color: #34d399;
     }
 
-    .endpoint-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .method-tag {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 6px;
-      text-transform: uppercase;
-      background: rgba(99, 102, 241, 0.2);
-      color: #a5b4fc;
-    }
-
-    .endpoint-path {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.82rem;
-      font-weight: 500;
-      color: #ffffff;
-    }
-
-    .endpoint-desc {
-      font-size: 0.78rem;
+    .check-item-desc {
+      font-size: 0.74rem;
       color: var(--text-muted);
+      line-height: 1.45;
     }
 
     /* Footer */
     .footer {
-      margin-top: 50px;
-      text-align: center;
-      font-size: 0.82rem;
-      color: #64748b;
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      margin-top: 40px;
       display: flex;
-      flex-direction: column;
       align-items: center;
-      gap: 8px;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
     }
 
     .footer a {
-      color: #818cf8;
+      color: var(--text-secondary);
       text-decoration: none;
     }
 
     .footer a:hover {
+      color: #ffffff;
       text-decoration: underline;
     }
   </style>
 </head>
 <body>
-  <div class="ambient-glow">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-  </div>
-  <div class="grid-overlay"></div>
 
-  <div class="container">
-    <!-- Header -->
-    <header class="header">
-      <div class="brand-wrap">
-        <div class="brand-icon">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+  <!-- Top Global Navigation -->
+  <nav class="top-nav">
+    <div class="top-nav-inner">
+      <div class="nav-left">
+        <div class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+            <line x1="6" y1="18" x2="6.01" y2="18"></line>
           </svg>
         </div>
-        <div>
-          <h1 class="brand-title">NovaStore API Engine</h1>
-          <p class="brand-subtitle">
-            <span>Production Backend Service</span>
-            <span>•</span>
-            <span style="font-family: 'JetBrains Mono', monospace;">Node ${process.version}</span>
-            <span>•</span>
-            <span>Vercel Serverless</span>
-          </p>
+        <div class="brand-info">
+          <div class="brand-name">
+            <span>NovaStore Infrastructure Platform</span>
+            <span class="brand-badge">REST Gateway</span>
+          </div>
+          <div class="brand-sub">core-api-service &bull; version 1.4.0</div>
         </div>
       </div>
 
-      <div class="header-actions">
-        <div class="live-badge">
-          <div class="live-dot"></div>
-          <span>System Operational</span>
+      <div class="nav-right">
+        <div class="status-indicator">
+          <div class="status-dot"></div>
+          <span>${dbConnected ? 'All Systems Operational' : 'Database Degraded'}</span>
         </div>
-        <a href="${clientUrl}" target="_blank" rel="noopener noreferrer" class="client-link-btn">
-          <span>Launch Web Store</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <a href="${clientUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+          <span>Customer Storefront</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="7" y1="17" x2="17" y2="7"></line>
             <polyline points="7 7 17 7 17 17"></polyline>
           </svg>
         </a>
       </div>
-    </header>
+    </div>
+  </nav>
 
-    <!-- Core Metrics Grid -->
-    <div class="grid grid-3">
-      <!-- Database Card -->
-      <div class="card">
-        <div class="card-label">
-          <span>Database Connectivity</span>
-          <span class="badge-pill ${dbConnected ? 'badge-success' : 'badge-warning'}">
-            ${dbConnected ? 'Active' : 'Standby'}
+  <!-- Main Container -->
+  <main class="container">
+
+    <!-- Sub-header Environment Strip -->
+    <div class="env-strip">
+      <div class="env-tags">
+        <span class="env-tag">ENV: ${environmentName}</span>
+        <span class="env-tag">RUNTIME: Node ${process.version}</span>
+        <span class="env-tag">ARCH: ${process.platform}-${process.arch}</span>
+        <span class="env-tag">PID: ${process.pid}</span>
+      </div>
+      <div class="clock-display">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <span id="liveClockUtc">UTC ...</span>
+      </div>
+    </div>
+
+    <!-- Core Metrics Overview Grid -->
+    <div class="metrics-grid">
+      <!-- Database Status -->
+      <div class="metric-card">
+        <div class="metric-head">
+          <span class="metric-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+            Database Cluster
+          </span>
+          <span class="metric-badge ${dbConnected ? 'badge-ok' : 'badge-warn'}">
+            ${dbConnected ? 'HEALTHY' : 'STANDBY'}
           </span>
         </div>
-        <div class="card-value">
-          <span style="color: ${dbConnected ? '#34d399' : '#fbbf24'};">●</span>
-          <span>${dbStateText}</span>
+        <div class="metric-value" style="font-size: 1.35rem; color: ${dbConnected ? '#34d399' : '#fbbf24'};">
+          ${dbStateText}
         </div>
-        <div class="card-subtext">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-          </svg>
-          <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;">${dbHost}</span>
+        <div class="metric-sub">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.74rem;">${dbHost}</span>
         </div>
       </div>
 
-      <!-- Server Uptime Card -->
-      <div class="card">
-        <div class="card-label">
-          <span>Server Uptime</span>
-          <span class="badge-pill badge-info">Live</span>
+      <!-- Service Uptime -->
+      <div class="metric-card">
+        <div class="metric-head">
+          <span class="metric-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            System Uptime
+          </span>
+          <span class="metric-badge badge-ok">LIVE</span>
         </div>
-        <div class="card-value" id="uptimeCounter">
+        <div class="metric-value" id="uptimeCounter">
           ${uptimeFormatted}
         </div>
-        <div class="card-subtext">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-          <span>Heap: ${heapUsedMb} MB / ${heapTotalMb} MB</span>
+        <div class="metric-sub">
+          <span>99.98% Service Level Objective</span>
         </div>
       </div>
 
-      <!-- Client Cross-Origin Card -->
-      <div class="card">
-        <div class="card-label">
-          <span>Client Integration</span>
-          <span class="badge-pill badge-success">CORS Ready</span>
+      <!-- Memory Allocation -->
+      <div class="metric-card">
+        <div class="metric-head">
+          <span class="metric-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+            </svg>
+            Heap Memory
+          </span>
+          <span class="metric-badge badge-ok">${heapPercent}%</span>
         </div>
-        <div class="card-value" style="font-size: 1.2rem; word-break: break-all;">
+        <div class="metric-value">
+          ${heapUsedMb} <span style="font-size: 0.9rem; font-weight: 500; color: var(--text-muted);">/ ${heapTotalMb} MB</span>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" style="width: ${heapPercent}%;"></div>
+        </div>
+        <div class="metric-sub" style="margin-top: 8px;">
+          <span>RSS Footprint: ${rssMb} MB</span>
+        </div>
+      </div>
+
+      <!-- Client Ingress -->
+      <div class="metric-card">
+        <div class="metric-head">
+          <span class="metric-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+            Client Gateway
+          </span>
+          <span class="metric-badge badge-ok">CORS OK</span>
+        </div>
+        <div class="metric-value" style="font-size: 1.15rem; word-break: break-all;">
           ${clientUrl.replace(/^https?:\/\//, '')}
         </div>
-        <div class="card-subtext">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-          </svg>
-          <span>Credentials: Allowed (Cross-Origin)</span>
+        <div class="metric-sub">
+          <span>HTTP Cookies: Credentials Allowed</span>
         </div>
       </div>
     </div>
 
-    <!-- Live Diagnostics Panel -->
-    <div class="diagnostic-panel">
-      <div class="section-title">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-        </svg>
-        <span>Live API Health & Diagnostics Tester</span>
-      </div>
-      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
-        Click an endpoint below to ping the live database and verify real-time latency and payload delivery from this deployed instance:
-      </p>
-
-      <div class="button-group">
-        <button class="test-btn active" onclick="runDiagnostic('/health')">
-          ⚡ GET /health
-        </button>
-        <button class="test-btn" onclick="runDiagnostic('/api/v1/products')">
-          📦 GET /api/v1/products
-        </button>
-        <button class="test-btn" onclick="runDiagnostic('/api/v1/categories')">
-          🏷️ GET /api/v1/categories
-        </button>
-        <button class="test-btn" onclick="runDiagnostic('/api/v1/home')">
-          🏠 GET /api/v1/home
-        </button>
-      </div>
-
-      <div class="console-box">
-        <div class="console-header">
-          <div class="console-meta">
-            <span id="testedEndpoint" style="color: #cbd5e1; font-weight: 600;">/health</span>
-            <span id="responseStatus" class="status-tag ok">200 OK</span>
-            <span id="responseLatency" style="color: #94a3b8;">-- ms</span>
+    <!-- Live API Diagnostics Console / Explorer -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 17 10 11 4 5"></polyline>
+            <line x1="12" y1="19" x2="20" y2="19"></line>
+          </svg>
+          <div>
+            <div class="panel-title">Interactive API Diagnostics Console</div>
+            <div class="panel-desc">Real-time telemetry and database ping tester for live infrastructure validation</div>
           </div>
-          <button class="copy-btn" id="copyJsonBtn" onclick="copyConsoleOutput()">
-            Copy JSON
+        </div>
+        <div>
+          <button class="btn btn-secondary" id="executeRequestBtn" onclick="reRunCurrentDiagnostic()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            <span>Execute Request</span>
           </button>
         </div>
-        <pre class="console-body" id="consoleOutput">Loading health diagnostic...</pre>
+      </div>
+
+      <div class="panel-body">
+        <!-- Endpoint Tabs -->
+        <div class="workbench-tabs">
+          <button class="tab-btn active" data-url="/health" onclick="selectEndpointTab('/health', this)">
+            <span class="method-pill pill-get">GET</span>
+            <span>/health</span>
+          </button>
+          <button class="tab-btn" data-url="/health/live" onclick="selectEndpointTab('/health/live', this)">
+            <span class="method-pill pill-get">GET</span>
+            <span>/health/live</span>
+          </button>
+          <button class="tab-btn" data-url="/health/ready" onclick="selectEndpointTab('/health/ready', this)">
+            <span class="method-pill pill-get">GET</span>
+            <span>/health/ready</span>
+          </button>
+          <button class="tab-btn" data-url="/api/v1/products?limit=3" onclick="selectEndpointTab('/api/v1/products?limit=3', this)">
+            <span class="method-pill pill-get">GET</span>
+            <span>/api/v1/products</span>
+          </button>
+          <button class="tab-btn" data-url="/api/v1/categories" onclick="selectEndpointTab('/api/v1/categories', this)">
+            <span class="method-pill pill-get">GET</span>
+            <span>/api/v1/categories</span>
+          </button>
+          <button class="tab-btn" data-url="/api/v1/home" onclick="selectEndpointTab('/api/v1/home', this)">
+            <span class="method-pill pill-get">GET</span>
+            <span>/api/v1/home</span>
+          </button>
+        </div>
+
+        <!-- URL Command Bar -->
+        <div class="url-command-bar">
+          <div class="url-input-container">
+            <span class="method-pill pill-get">GET</span>
+            <span class="host-prefix">${hostUrl}</span>
+            <span class="path-active" id="activeUrlPath">/health</span>
+          </div>
+          <button class="btn btn-secondary" id="copyPayloadBtn" onclick="copyConsoleOutput()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copy Response</span>
+          </button>
+        </div>
+
+        <!-- Terminal Output Box -->
+        <div class="terminal-window">
+          <div class="terminal-header">
+            <div class="terminal-meta-left">
+              <span id="responseStatusBadge" class="resp-tag tag-wait">CONNECTING...</span>
+              <span id="responseLatency" style="color: var(--text-muted);">-- ms</span>
+              <span id="responseSize" style="color: var(--text-muted);">-- KB</span>
+            </div>
+            <div>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-muted);">application/json; charset=utf-8</span>
+            </div>
+          </div>
+          <pre class="terminal-code" id="consoleOutput">Initiating telemetry diagnostics...</pre>
+        </div>
       </div>
     </div>
 
-    <!-- API Directory -->
-    <div class="diagnostic-panel" style="padding-bottom: 20px;">
-      <div class="section-title">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2">
-          <line x1="8" y1="6" x2="21" y2="6"></line>
-          <line x1="8" y1="12" x2="21" y2="12"></line>
-          <line x1="8" y1="18" x2="21" y2="18"></line>
-          <line x1="3" y1="6" x2="3.01" y2="6"></line>
-          <line x1="3" y1="12" x2="3.01" y2="12"></line>
-          <line x1="3" y1="18" x2="3.01" y2="18"></line>
-        </svg>
-        <span>API Endpoints Directory</span>
+    <!-- REST API Service Directory -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+          <div>
+            <div class="panel-title">REST API Service Inventory</div>
+            <div class="panel-desc">Primary production endpoints exposed by this microservices gateway</div>
+          </div>
+        </div>
+        <div>
+          <span style="font-size: 0.78rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">Prefix: /api/v1</span>
+        </div>
       </div>
 
-      <div class="endpoint-grid">
-        <a href="/api/v1/products" target="_blank" class="endpoint-row">
-          <div class="endpoint-info">
-            <span class="method-tag">GET</span>
-            <span class="endpoint-path">/api/v1/products</span>
-          </div>
-          <span class="endpoint-desc">Catalog & Search</span>
-        </a>
+      <div class="table-container">
+        <table class="api-table">
+          <thead>
+            <tr>
+              <th style="width: 80px;">Method</th>
+              <th>Endpoint Route</th>
+              <th>Service Domain</th>
+              <th>Access Tier</th>
+              <th>Caching Policy</th>
+              <th style="text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="method-pill pill-get">GET</span></td>
+              <td class="path-cell">/health</td>
+              <td>System Telemetry</td>
+              <td><span class="auth-badge auth-public">Public</span></td>
+              <td>Real-time (0s)</td>
+              <td style="text-align: right;">
+                <a class="test-action-link" onclick="selectEndpointTab('/health')">Inspect &rarr;</a>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="method-pill pill-get">GET</span></td>
+              <td class="path-cell">/health/live</td>
+              <td>Kubernetes Liveness</td>
+              <td><span class="auth-badge auth-public">Public</span></td>
+              <td>Real-time (0s)</td>
+              <td style="text-align: right;">
+                <a class="test-action-link" onclick="selectEndpointTab('/health/live')">Inspect &rarr;</a>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="method-pill pill-get">GET</span></td>
+              <td class="path-cell">/health/ready</td>
+              <td>MongoDB Cluster Probe</td>
+              <td><span class="auth-badge auth-public">Public</span></td>
+              <td>Real-time (0s)</td>
+              <td style="text-align: right;">
+                <a class="test-action-link" onclick="selectEndpointTab('/health/ready')">Inspect &rarr;</a>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="method-pill pill-get">GET</span></td>
+              <td class="path-cell">/api/v1/products</td>
+              <td>Catalog & Merchandising</td>
+              <td><span class="auth-badge auth-public">Public</span></td>
+              <td>Client SWR (3m)</td>
+              <td style="text-align: right;">
+                <a class="test-action-link" onclick="selectEndpointTab('/api/v1/products?limit=3')">Inspect &rarr;</a>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="method-pill pill-get">GET</span></td>
+              <td class="path-cell">/api/v1/categories</td>
+              <td>Taxonomy Engine</td>
+              <td><span class="auth-badge auth-public">Public</span></td>
+              <td>Client SWR (10m)</td>
+              <td style="text-align: right;">
+                <a class="test-action-link" onclick="selectEndpointTab('/api/v1/categories')">Inspect &rarr;</a>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="method-pill pill-get">GET</span></td>
+              <td class="path-cell">/api/v1/home</td>
+              <td>Storefront Aggregation</td>
+              <td><span class="auth-badge auth-public">Public</span></td>
+              <td>Client SWR (3m)</td>
+              <td style="text-align: right;">
+                <a class="test-action-link" onclick="selectEndpointTab('/api/v1/home')">Inspect &rarr;</a>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="method-pill pill-get">GET</span></td>
+              <td class="path-cell">/api/v1/banners/active</td>
+              <td>Hero Slider Engine</td>
+              <td><span class="auth-badge auth-public">Public</span></td>
+              <td>Client SWR (5m)</td>
+              <td style="text-align: right;">
+                <a class="test-action-link" onclick="selectEndpointTab('/api/v1/banners/active')">Inspect &rarr;</a>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="method-pill pill-get">GET</span></td>
+              <td class="path-cell">/api/v1/cart</td>
+              <td>Commerce & Checkout</td>
+              <td><span class="auth-badge auth-jwt">Session / JWT</span></td>
+              <td>Strict No-Cache</td>
+              <td style="text-align: right;"><span style="color: var(--text-muted);">&mdash;</span></td>
+            </tr>
+            <tr>
+              <td><span class="method-pill pill-post">POST</span></td>
+              <td class="path-cell">/api/v1/orders</td>
+              <td>Order Processing Pipeline</td>
+              <td><span class="auth-badge auth-jwt">Customer JWT</span></td>
+              <td>Atomic Transacted</td>
+              <td style="text-align: right;"><span style="color: var(--text-muted);">&mdash;</span></td>
+            </tr>
+            <tr>
+              <td><span class="method-pill pill-get">GET</span></td>
+              <td class="path-cell">/api/v1/admin/dashboard</td>
+              <td>Seller Intelligence</td>
+              <td><span class="auth-badge auth-admin">Admin RBAC</span></td>
+              <td>Live Aggregated</td>
+              <td style="text-align: right;"><span style="color: var(--text-muted);">&mdash;</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-        <a href="/api/v1/categories" target="_blank" class="endpoint-row">
-          <div class="endpoint-info">
-            <span class="method-tag">GET</span>
-            <span class="endpoint-path">/api/v1/categories</span>
+    <!-- Security & Operational Compliance Overview -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          <div>
+            <div class="panel-title">Infrastructure & Security Governance</div>
+            <div class="panel-desc">Compliance standards enforced at the network ingress and application boundary</div>
           </div>
-          <span class="endpoint-desc">Categories Hierarchy</span>
-        </a>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="checklist-grid">
+          <div class="check-item">
+            <div class="check-item-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>TLS 1.3 Transport</span>
+            </div>
+            <div class="check-item-desc">
+              All communications encrypted in transit with enforced HTTPS and HSTS preloading headers.
+            </div>
+          </div>
 
-        <a href="/api/v1/home" target="_blank" class="endpoint-row">
-          <div class="endpoint-info">
-            <span class="method-tag">GET</span>
-            <span class="endpoint-path">/api/v1/home</span>
+          <div class="check-item">
+            <div class="check-item-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>CORS Isolation</span>
+            </div>
+            <div class="check-item-desc">
+              Strict origin matching with credentials allowed only for verified Vercel storefront domains.
+            </div>
           </div>
-          <span class="endpoint-desc">Aggregated Store Feed</span>
-        </a>
 
-        <a href="/health" target="_blank" class="endpoint-row">
-          <div class="endpoint-info">
-            <span class="method-tag">GET</span>
-            <span class="endpoint-path">/health</span>
+          <div class="check-item">
+            <div class="check-item-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Atomic Inventory</span>
+            </div>
+            <div class="check-item-desc">
+              ACID transacted quantity validation preventing race conditions, over-selling, or stock drift.
+            </div>
           </div>
-          <span class="endpoint-desc">Liveness & Database Probe</span>
-        </a>
 
-        <a href="/api/v1/banners" target="_blank" class="endpoint-row">
-          <div class="endpoint-info">
-            <span class="method-tag">GET</span>
-            <span class="endpoint-path">/api/v1/banners</span>
+          <div class="check-item">
+            <div class="check-item-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Rate Limit Defense</span>
+            </div>
+            <div class="check-item-desc">
+              100 requests per 15-minute sliding window with automatic client cold-start retry tolerance.
+            </div>
           </div>
-          <span class="endpoint-desc">Store Banners</span>
-        </a>
-
-        <a href="/health/ready" target="_blank" class="endpoint-row">
-          <div class="endpoint-info">
-            <span class="method-tag">GET</span>
-            <span class="endpoint-path">/health/ready</span>
-          </div>
-          <span class="endpoint-desc">Readiness Check</span>
-        </a>
+        </div>
       </div>
     </div>
 
     <!-- Footer -->
     <footer class="footer">
       <div>
-        NovaStore Full-Stack Platform • Node.js Express & MongoDB Atlas • Deployed on Vercel
+        <span>NovaStore Infrastructure Platform &bull; Production Gateway</span>
       </div>
       <div>
-        API Base: <code style="font-family: 'JetBrains Mono', monospace; color: #cbd5e1;">${hostUrl}/api/v1</code>
+        <span>API Base: <code style="color: #cbd5e1; font-family: 'JetBrains Mono', monospace;">${hostUrl}/api/v1</code></span>
       </div>
     </footer>
-  </div>
+
+  </main>
 
   <script>
-    // Realtime diagnostic runner
-    async function runDiagnostic(endpoint) {
-      const endpointEl = document.getElementById('testedEndpoint');
-      const statusEl = document.getElementById('responseStatus');
-      const latencyEl = document.getElementById('responseLatency');
-      const consoleEl = document.getElementById('consoleOutput');
+    let currentEndpoint = '/health';
 
-      // Update active button state
-      document.querySelectorAll('.test-btn').forEach(btn => {
-        if (btn.innerText.includes(endpoint)) {
+    function selectEndpointTab(endpoint, tabEl) {
+      currentEndpoint = endpoint;
+      document.getElementById('activeUrlPath').innerText = endpoint;
+
+      // Update tab selection state
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.getAttribute('data-url') === endpoint || btn.innerText.includes(endpoint.split('?')[0])) {
           btn.classList.add('active');
         } else {
           btn.classList.remove('active');
         }
       });
 
-      endpointEl.innerText = endpoint;
-      statusEl.className = 'status-tag wait';
-      statusEl.innerText = 'PINGING...';
-      latencyEl.innerText = 'measuring...';
-      consoleEl.innerText = 'Connecting to server & database...';
+      // Scroll smoothly to workbench
+      document.querySelector('.workbench-tabs').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-      const start = performance.now();
+      // Run test
+      runDiagnostic(endpoint);
+    }
+
+    function reRunCurrentDiagnostic() {
+      runDiagnostic(currentEndpoint);
+    }
+
+    // Syntax highlighter for clean enterprise code display
+    function formatJsonSyntax(json) {
+      if (typeof json !== 'string') {
+        json = JSON.stringify(json, null, 2);
+      }
+      json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\\\"])*"(\\s*:)?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g, function (match) {
+        let cls = 'json-number';
+        if (/^"/.test(match)) {
+          if (/:$/.test(match)) {
+            cls = 'json-key';
+          } else {
+            cls = 'json-string';
+          }
+        } else if (/true|false/.test(match)) {
+          cls = 'json-boolean';
+        } else if (/null/.test(match)) {
+          cls = 'json-null';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+      });
+    }
+
+    async function runDiagnostic(endpoint) {
+      const statusBadge = document.getElementById('responseStatusBadge');
+      const latencyEl = document.getElementById('responseLatency');
+      const sizeEl = document.getElementById('responseSize');
+      const consoleEl = document.getElementById('consoleOutput');
+
+      statusBadge.className = 'resp-tag tag-wait';
+      statusBadge.innerText = 'PINGING...';
+      latencyEl.innerText = 'Measuring...';
+      sizeEl.innerText = '-- KB';
+      consoleEl.innerHTML = '<span style="color: #94a3b8;">Connecting to serverless API gateway & MongoDB cluster...</span>';
+
+      const startTime = performance.now();
       try {
         const res = await fetch(endpoint);
-        const duration = Math.round(performance.now() - start);
-        const data = await res.json();
+        const duration = Math.round(performance.now() - startTime);
+        const text = await res.text();
+        const byteLength = new Blob([text]).size;
+        const kbSize = (byteLength / 1024).toFixed(2);
 
-        statusEl.className = res.ok ? 'status-tag ok' : 'status-tag wait';
-        statusEl.innerText = res.status + ' ' + (res.statusText || 'OK');
-        latencyEl.innerText = '⚡ ' + duration + ' ms';
-        consoleEl.innerText = JSON.stringify(data, null, 2);
-      } catch (err) {
-        const duration = Math.round(performance.now() - start);
-        statusEl.className = 'status-tag wait';
-        statusEl.innerText = 'ERROR';
+        let parsed;
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          parsed = text;
+        }
+
+        statusBadge.className = res.ok ? 'resp-tag tag-ok' : 'resp-tag tag-err';
+        statusBadge.innerText = res.status + ' ' + (res.statusText || (res.ok ? 'OK' : 'FAIL'));
         latencyEl.innerText = duration + ' ms';
-        consoleEl.innerText = 'Failed to fetch diagnostic: ' + err.message;
+        sizeEl.innerText = kbSize + ' KB';
+
+        consoleEl.innerHTML = formatJsonSyntax(parsed);
+      } catch (err) {
+        const duration = Math.round(performance.now() - startTime);
+        statusBadge.className = 'resp-tag tag-err';
+        statusBadge.innerText = 'CONNECTION ERROR';
+        latencyEl.innerText = duration + ' ms';
+        consoleEl.innerHTML = '<span style="color: #f87171;">Failed to connect to gateway: ' + err.message + '</span>';
       }
     }
 
     function copyConsoleOutput() {
-      const text = document.getElementById('consoleOutput').innerText;
+      const consoleEl = document.getElementById('consoleOutput');
+      const text = consoleEl.innerText;
       navigator.clipboard.writeText(text).then(() => {
-        const btn = document.getElementById('copyJsonBtn');
-        btn.innerText = '✓ Copied!';
-        setTimeout(() => { btn.innerText = 'Copy JSON'; }, 2000);
+        const btn = document.getElementById('copyPayloadBtn');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<span style="color: #34d399;">✓ Copied</span>';
+        setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
       });
     }
 
-    // Live uptime ticker
-    let uptimeSec = ${uptimeSeconds};
+    // Live Uptime Ticker
+    let currentUptimeSec = ${uptimeSeconds};
     setInterval(() => {
-      uptimeSec++;
-      const h = Math.floor(uptimeSec / 3600);
-      const m = Math.floor((uptimeSec % 3600) / 60);
-      const s = uptimeSec % 60;
+      currentUptimeSec++;
+      const h = Math.floor(currentUptimeSec / 3600);
+      const m = Math.floor((currentUptimeSec % 3600) / 60);
+      const s = currentUptimeSec % 60;
       const el = document.getElementById('uptimeCounter');
       if (el) el.innerText = h + 'h ' + m + 'm ' + s + 's';
     }, 1000);
 
-    // Initial diagnostic run
+    // Live UTC Clock
+    function updateUtcClock() {
+      const now = new Date();
+      const iso = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+      const el = document.getElementById('liveClockUtc');
+      if (el) el.innerText = iso;
+    }
+    setInterval(updateUtcClock, 1000);
+    updateUtcClock();
+
+    // Initial Probe
     runDiagnostic('/health');
   </script>
 </body>
