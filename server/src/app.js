@@ -79,8 +79,15 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 
-// Static file serving for uploads
-app.use('/uploads', express.static(storageService.getUploadDirectory()));
+// Static file serving for uploads with 30-day immutable caching
+app.use(
+  '/uploads',
+  express.static(storageService.getUploadDirectory(), {
+    maxAge: '30d',
+    immutable: true,
+  })
+);
+
 
 const healthPayload = () => ({
   status: mongoose.connection.readyState === 1 ? 'healthy' : 'unhealthy',

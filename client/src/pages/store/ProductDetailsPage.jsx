@@ -45,6 +45,7 @@ import { useCart } from '../../contexts/CartContext';
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { optimizeImageUrl } from '../../utils/imageUrl';
 
 export const ProductDetailsPage = () => {
   const { idOrSlug } = useParams();
@@ -233,8 +234,11 @@ export const ProductDetailsPage = () => {
             >
               <Box
                 component="img"
-                src={images[selectedImage]}
+                src={optimizeImageUrl(images[selectedImage], { width: 900, quality: 80 })}
                 alt={product.name}
+                fetchpriority="high"
+                loading="eager"
+                decoding="async"
                 sx={{
                   position: 'absolute',
                   top: 0,
@@ -268,8 +272,10 @@ export const ProductDetailsPage = () => {
                   >
                     <Box
                       component="img"
-                      src={img}
+                      src={optimizeImageUrl(img, { width: 160, quality: 70 })}
                       alt={`Thumbnail ${idx}`}
+                      loading="lazy"
+                      decoding="async"
                       sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
                     />
                   </Box>

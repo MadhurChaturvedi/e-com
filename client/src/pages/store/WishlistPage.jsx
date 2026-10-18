@@ -19,6 +19,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
 import { useWishlist } from '../../contexts/WishlistContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { optimizeImageUrl } from '../../utils/imageUrl';
 
 export const WishlistPage = () => {
   const navigate = useNavigate();
@@ -122,10 +123,13 @@ export const WishlistPage = () => {
                 >
                   <CardMedia
                     component="img"
-                    image={product.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=400&q=80'}
+                    image={optimizeImageUrl(product.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e', { width: 320, quality: 75 })}
                     alt={product.name}
+                    loading="lazy"
+                    decoding="async"
                     sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
                   />
+
                 </Box>
 
                 <CardContent sx={{ flexGrow: 1, p: 2 }}>

@@ -18,6 +18,7 @@ import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import { useCart } from '../../contexts/CartContext';
 import { useWishlist } from '../../contexts/WishlistContext';
+import { optimizeImageUrl, getOptimizedSrcSet } from '../../utils/imageUrl';
 
 export const ProductCard = ({ product }) => {
   const navigate = useNavigate();
@@ -50,9 +51,11 @@ export const ProductCard = ({ product }) => {
     toggleWishlist(product);
   };
 
-  const displayImage =
+  const rawImage =
     product.images?.[0] ||
-    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';
+    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=420&q=75';
+  const displayImage = optimizeImageUrl(rawImage, { width: 420, quality: 75 });
+  const imageSrcSet = getOptimizedSrcSet(rawImage, [280, 420, 600], { quality: 75 });
 
   return (
     <Card
@@ -163,6 +166,8 @@ export const ProductCard = ({ product }) => {
         <CardMedia
           component="img"
           image={displayImage}
+          srcSet={imageSrcSet}
+          sizes="(max-width: 600px) 50vw, (max-width: 960px) 33vw, 280px"
           alt={product.name}
           loading="lazy"
           decoding="async"

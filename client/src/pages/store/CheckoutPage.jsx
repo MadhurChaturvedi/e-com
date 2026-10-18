@@ -35,6 +35,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 import { orderService } from '../../services/orderService';
 import { authService } from '../../services/authService';
 import { orderSound } from '../../utils/orderSound';
+import { optimizeImageUrl } from '../../utils/imageUrl';
 
 const STEPS = ['Shipping Address', 'Payment Method', 'Review & Place Order'];
 
@@ -468,10 +469,13 @@ export const CheckoutPage = () => {
                       <Stack direction="row" spacing={2} alignItems="center">
                         <Box
                           component="img"
-                          src={i.product?.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=80&q=80'}
+                          src={optimizeImageUrl(i.product?.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e', { width: 100, quality: 75 })}
                           alt={i.product?.name}
+                          loading="lazy"
+                          decoding="async"
                           sx={{ width: 48, height: 48, borderRadius: 1.5, objectFit: 'cover' }}
                         />
+
                         <Box>
                           <Typography variant="body2" fontWeight={700} noWrap sx={{ maxWidth: 300 }}>
                             {i.product?.name}

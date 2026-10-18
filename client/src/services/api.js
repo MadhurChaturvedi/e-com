@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { cacheManager } from '../utils/cacheManager';
 
 const DEFAULT_PROD_API = 'https://e-com-np3u.vercel.app/api/v1';
 
@@ -75,4 +76,69 @@ api.interceptors.response.use(
   }
 );
 
+// High-speed caching & in-flight deduplication wrapper
+const originalGet = api.get.bind(api);
+const originalPost = api.post.bind(api);
+const originalPut = api.put.bind(api);
+const originalPatch = api.patch.bind(api);
+const originalDelete = api.delete.bind(api);
+
+const buildCacheKey = (url, params) => {
+  if (!params || Object.keys(params).length === 0) return url;
+  const queryString = new URLSearchParams(params).toString();
+  return `${url}?${queryString}`;
+};
+
+api.get = (url, config = {}) => {
+  const { skipCache = false, cacheTTL = 180000, params, ...restConfig } = config;
+
+  if (skipCache || !cacheManager.isCacheable(url, 'get')) {
+    return originalGet(url, { params, ...restConfig });
+  }
+
+  const cacheKey = buildCacheKey(url, params);
+  const cachedData = cacheManager.get(cacheKey);
+
+  if (cachedData !== null) {
+    return Promise.resolve(cachedData);
+  }
+
+  return cacheManager.dedup(cacheKey, async () => {
+    const data = await originalGet(url, { params, ...restConfig });
+    if (data && data.success !== false) {
+      cacheManager.set(cacheKey, data, cacheTTL);
+    }
+    return data;
+  });
+};
+
+api.post = async (url, data, config) => {
+  const res = await originalPost(url, data, config);
+  const root = url.replace(/^\//, '').split('/')[0];
+  if (root) cacheManager.invalidate(root);
+  return res;
+};
+
+api.put = async (url, data, config) => {
+  const res = await originalPut(url, data, config);
+  const root = url.replace(/^\//, '').split('/')[0];
+  if (root) cacheManager.invalidate(root);
+  return res;
+};
+
+api.patch = async (url, data, config) => {
+  const res = await originalPatch(url, data, config);
+  const root = url.replace(/^\//, '').split('/')[0];
+  if (root) cacheManager.invalidate(root);
+  return res;
+};
+
+api.delete = async (url, config) => {
+  const res = await originalDelete(url, config);
+  const root = url.replace(/^\//, '').split('/')[0];
+  if (root) cacheManager.invalidate(root);
+  return res;
+};
+
 export default api;
+
