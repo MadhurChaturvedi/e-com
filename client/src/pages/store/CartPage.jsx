@@ -28,6 +28,7 @@ import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 import { useCart } from '../../contexts/CartContext';
+import { optimizeImageUrl } from '../../utils/imageUrl';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { couponService } from '../../services/couponService';
@@ -165,8 +166,10 @@ export const CartPage = () => {
                         <Stack direction="row" spacing={2} alignItems="center">
                           <Box
                             component="img"
-                            src={p.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=120&q=80'}
+                            src={optimizeImageUrl(p.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e', { width: 140, quality: 75 })}
                             alt={p.name}
+                            loading="lazy"
+                            decoding="async"
                             sx={{
                               width: 64,
                               height: 64,
@@ -175,6 +178,7 @@ export const CartPage = () => {
                               border: '1px solid #e2e8f0',
                             }}
                           />
+
                           <Box>
                             <Typography
                               component={RouterLink}

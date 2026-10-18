@@ -29,6 +29,40 @@ import { HeroSlider } from '../../components/home/HeroSlider';
 import { ProductCard } from '../../components/products/ProductCard';
 import { productService } from '../../services/productService';
 import { useNotification } from '../../contexts/NotificationContext';
+import { optimizeImageUrl, getOptimizedSrcSet } from '../../utils/imageUrl';
+
+// Isolated Countdown Badge to prevent entire HomePage tree re-rendering every second
+const PromoCountdownBadge = React.memo(() => {
+  const [timeLeft, setTimeLeft] = useState({ hours: 7, minutes: 48, seconds: 25 });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
+        if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59 };
+        if (prev.hours > 0) return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
+        return { hours: 12, minutes: 0, seconds: 0 };
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <Chip
+      icon={<AccessTimeIcon sx={{ fontSize: '0.85rem !important', color: '#fbbf24 !important' }} />}
+      label={`LIMITED FLASH PROMO: ${String(timeLeft.hours).padStart(2, '0')}h : ${String(timeLeft.minutes).padStart(2, '0')}m : ${String(timeLeft.seconds).padStart(2, '0')}s`}
+      size="small"
+      sx={{
+        fontWeight: 800,
+        fontSize: '0.72rem',
+        backgroundColor: 'rgba(251, 191, 36, 0.18)',
+        color: '#fef08a',
+        border: '1px solid rgba(251, 191, 36, 0.35)',
+        backdropFilter: 'blur(8px)',
+      }}
+    />
+  );
+});
 
 export const HomePage = () => {
   const navigate = useNavigate();
@@ -45,20 +79,6 @@ export const HomePage = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  // Dynamic countdown timer for Flash Deals
-  const [timeLeft, setTimeLeft] = useState({ hours: 7, minutes: 48, seconds: 25 });
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-        if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59 };
-        if (prev.hours > 0) return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        return { hours: 12, minutes: 0, seconds: 0 };
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     productService.getHomeData()
@@ -264,7 +284,9 @@ export const HomePage = () => {
                         component="img"
                         loading="lazy"
                         decoding="async"
-                        image={cat.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=400&q=80'}
+                        image={optimizeImageUrl(cat.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e', { width: 280, quality: 75 })}
+                        srcSet={getOptimizedSrcSet(cat.image, [160, 280, 400], { quality: 75 })}
+                        sizes="(max-width: 600px) 50vw, (max-width: 960px) 33vw, 200px"
                         alt={cat.name}
                         className="category-img"
                         sx={{ height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }}
@@ -325,20 +347,9 @@ export const HomePage = () => {
           <Grid container spacing={3.5} alignItems="center">
             <Grid item xs={12} md={7.5}>
               <Stack direction="row" spacing={1} alignItems="center" mb={1.5}>
-                <Chip
-                  icon={<AccessTimeIcon sx={{ fontSize: '0.85rem !important', color: '#fbbf24 !important' }} />}
-                  label={`LIMITED FLASH PROMO: ${String(timeLeft.hours).padStart(2, '0')}h : ${String(timeLeft.minutes).padStart(2, '0')}m : ${String(timeLeft.seconds).padStart(2, '0')}s`}
-                  size="small"
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: '0.72rem',
-                    backgroundColor: 'rgba(251, 191, 36, 0.18)',
-                    color: '#fef08a',
-                    border: '1px solid rgba(251, 191, 36, 0.35)',
-                    backdropFilter: 'blur(8px)',
-                  }}
-                />
+                <PromoCountdownBadge />
               </Stack>
+
 
               <Typography variant="h4" fontWeight={800} mb={1.2} sx={{ fontSize: { xs: '1.4rem', md: '1.85rem' }, letterSpacing: '-0.025em' }}>
                 Instant 10% Off On All Orders

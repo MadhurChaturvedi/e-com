@@ -25,6 +25,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 import { orderService } from '../../services/orderService';
 import { useNotification } from '../../contexts/NotificationContext';
+import { optimizeImageUrl } from '../../utils/imageUrl';
 
 export const OrderDetailsPage = () => {
   const { id } = useParams();
@@ -188,10 +189,13 @@ export const OrderDetailsPage = () => {
                   <Stack direction="row" spacing={2.5} alignItems="center">
                     <Box
                       component="img"
-                      src={item.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=100&q=80'}
+                      src={optimizeImageUrl(item.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e', { width: 140, quality: 75 })}
                       alt={item.name}
+                      loading="lazy"
+                      decoding="async"
                       sx={{ width: 64, height: 64, borderRadius: 2, objectFit: 'cover', border: '1px solid #e2e8f0' }}
                     />
+
                     <Box>
                       <Typography variant="subtitle2" fontWeight={700}>
                         {item.name}

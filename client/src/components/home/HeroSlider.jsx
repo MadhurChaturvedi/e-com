@@ -14,11 +14,12 @@ import ArrowForwardOutlinedIcon from '@mui/icons-material/ArrowForwardOutlined';
 import SparklesIcon from '@mui/icons-material/AutoAwesome';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import { bannerService } from '../../services/bannerService';
+import { optimizeImageUrl, getOptimizedSrcSet } from '../../utils/imageUrl';
 
 const fallbackBanner = {
   title: 'Next-Gen Living. Engineered to Perfection.',
   subtitle: 'Discover ultra-premium electronics, minimalist lifestyle essentials, and iconic designer gear with fast express delivery.',
-  image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1800&q=85',
+  image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1400&q=75',
   ctaLabel: 'Explore Collection',
   destinationUrl: '/shop',
 };
@@ -267,20 +268,28 @@ export const HeroSlider = ({ banners: propBanners = null, loading: propLoading =
                   overflow: 'hidden',
                 }}
               >
-                {/* Background Image with Subtle Parallax Zoom */}
+                {/* High-Performance Responsive Banner Image */}
                 <Box
+                  component="img"
+                  src={optimizeImageUrl(slide.image, { width: 1400, quality: 75 })}
+                  srcSet={getOptimizedSrcSet(slide.image, [640, 1024, 1400, 1800], { quality: 75 })}
+                  sizes="100vw"
+                  alt={slide.title || 'Promotional Banner'}
+                  fetchpriority={sIdx === (hasMultiple ? 1 : 0) ? 'high' : 'auto'}
+                  loading={sIdx === (hasMultiple ? 1 : 0) ? 'eager' : 'lazy'}
+                  decoding="async"
                   sx={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
                     width: '100%',
                     height: '100%',
-                    backgroundImage: `url(${slide.image})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: { xs: '65% center', md: 'center' },
+                    objectFit: 'cover',
+                    objectPosition: { xs: '65% center', md: 'center' },
                     filter: 'brightness(0.9)',
                     transform: isSlideActive ? 'scale(1.03)' : 'scale(1)',
                     transition: 'transform 6s cubic-bezier(0.16, 1, 0.3, 1)',
+                    pointerEvents: 'none',
                   }}
                 />
 

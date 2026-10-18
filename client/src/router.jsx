@@ -3,7 +3,6 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 
 // Layouts
 import { StoreLayout } from './layouts/StoreLayout';
-import { AdminLayout } from './layouts/AdminLayout';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { PageLoader } from './components/common/PageLoader';
 
@@ -13,6 +12,10 @@ const Loadable = (Component) => (props) => (
     <Component {...props} />
   </Suspense>
 );
+
+// Admin Layout (Lazy Loaded to keep admin icons and audio synthesizers out of the customer storefront bundle)
+const AdminLayout = Loadable(lazy(() => import('./layouts/AdminLayout').then(m => ({ default: m.AdminLayout }))));
+
 
 // Store Pages (Lazy Loaded)
 const HomePage = Loadable(lazy(() => import('./pages/store/HomePage').then(m => ({ default: m.HomePage }))));

@@ -10,6 +10,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- DNS Prefetch and Preconnect to Image CDN & Backend -->
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
+    <link rel="dns-prefetch" href="https://images.unsplash.com" />
+    <link rel="preconnect" href="https://e-com-np3u.vercel.app" crossorigin />
+    <link rel="dns-prefetch" href="https://e-com-np3u.vercel.app" />
+
+    <!-- Preload Hero LCP Banner Image for Instant First Render -->
+    <link
+      rel="preload"
+      as="image"
+      href="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1400&q=75"
+      fetchpriority="high"
+    />
   </head>
   <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif;">
     <div id="root"></div>
