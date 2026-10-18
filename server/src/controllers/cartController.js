@@ -3,12 +3,28 @@ import { Product } from '../models/Product.js';
 import { StoreSettings } from '../models/StoreSettings.js';
 import { successResponse, errorResponse } from '../utils/apiResponse.js';
 
+let cachedSettings = null;
+let settingsCacheExpiry = 0;
+
+const getStoreSettings = async () => {
+  if (cachedSettings && Date.now() < settingsCacheExpiry) {
+    return cachedSettings;
+  }
+  try {
+    cachedSettings = await StoreSettings.findOne().lean();
+    settingsCacheExpiry = Date.now() + 5 * 60 * 1000;
+  } catch {
+    cachedSettings = null;
+  }
+  return cachedSettings;
+};
+
 // Helper to compute cart totals with live product prices
 const formatCartResponse = async (cart) => {
   let subtotal = 0;
   const items = [];
 
-  const settings = await StoreSettings.findOne().lean();
+  const settings = await getStoreSettings();
   const freeShippingThreshold = settings?.shipping?.freeShippingThreshold ?? 50;
   const standardShippingFee = settings?.shipping?.standardShippingFee ?? 10;
 
@@ -112,8 +128,8 @@ export const addToCart = async (req, res, next) => {
     }
 
     await cart.save();
-    const updated = await Cart.findById(cart._id).populate('items.product');
-    const formatted = await formatCartResponse(updated);
+    await cart.populate('items.product');
+    const formatted = await formatCartResponse(cart);
 
     return successResponse(res, formatted, 'Product added to cart.');
   } catch (error) {
@@ -155,8 +171,8 @@ export const updateCartItem = async (req, res, next) => {
     }
 
     await cart.save();
-    const updated = await Cart.findById(cart._id).populate('items.product');
-    const formatted = await formatCartResponse(updated);
+    await cart.populate('items.product');
+    const formatted = await formatCartResponse(cart);
 
     return successResponse(res, formatted, 'Cart updated successfully.');
   } catch (error) {
@@ -175,9 +191,8 @@ export const removeFromCart = async (req, res, next) => {
 
     cart.items.pull({ _id: itemId });
     await cart.save();
-
-    const updated = await Cart.findById(cart._id).populate('items.product');
-    const formatted = await formatCartResponse(updated);
+    await cart.populate('items.product');
+    const formatted = await formatCartResponse(cart);
 
     return successResponse(res, formatted, 'Item removed from cart.');
   } catch (error) {
@@ -237,8 +252,8 @@ export const mergeCart = async (req, res, next) => {
     }
 
     await cart.save();
-    const updated = await Cart.findById(cart._id).populate('items.product');
-    const formatted = await formatCartResponse(updated);
+    await cart.populate('items.product');
+    const formatted = await formatCartResponse(cart);
 
     return successResponse(res, formatted, 'Cart merged successfully.');
   } catch (error) {

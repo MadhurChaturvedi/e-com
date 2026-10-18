@@ -10,17 +10,21 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import AspectRatioIcon from '@mui/icons-material/AspectRatio';
 import Chip from '@mui/material/Chip';
 
-const DEFAULT_ZOOM = 0.75;
-const MIN_ZOOM = 0.50;
+const DEFAULT_ZOOM = 1.0;
+const MIN_ZOOM = 0.75;
 const MAX_ZOOM = 1.25;
 const STEP = 0.05;
 
 export const ZoomController = () => {
   const [zoom, setZoom] = useState(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 960) {
+      return DEFAULT_ZOOM;
+    }
     const saved = localStorage.getItem('novastore_zoom');
     if (saved) {
       const parsed = parseFloat(saved);
-      if (!isNaN(parsed) && parsed >= MIN_ZOOM && parsed <= MAX_ZOOM) {
+      // Discard legacy 0.75 or invalid values
+      if (!isNaN(parsed) && parsed >= MIN_ZOOM && parsed <= MAX_ZOOM && parsed !== 0.75) {
         return parsed;
       }
     }
@@ -30,10 +34,21 @@ export const ZoomController = () => {
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    // Apply zoom on html element
-    document.documentElement.style.zoom = zoom.toString();
-    localStorage.setItem('novastore_zoom', zoom.toString());
+    const applyZoom = () => {
+      // Mobile devices (< 960px) must ALWAYS maintain 1.0 natural unscaled viewport
+      if (window.innerWidth < 960) {
+        document.documentElement.style.zoom = '1';
+        return;
+      }
+      document.documentElement.style.zoom = zoom.toString();
+      localStorage.setItem('novastore_zoom', zoom.toString());
+    };
+
+    applyZoom();
+    window.addEventListener('resize', applyZoom);
+    return () => window.removeEventListener('resize', applyZoom);
   }, [zoom]);
+
 
   const handleZoomOut = () => {
     setZoom((prev) => Math.max(MIN_ZOOM, parseFloat((prev - STEP).toFixed(2))));
@@ -154,7 +169,7 @@ export const ZoomController = () => {
         {/* Extended Preset Options when Expanded */}
         {expanded && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 0.5, pl: 0.8, borderLeft: '1px solid rgba(255, 255, 255, 0.15)' }}>
-            {[0.65, 0.70, 0.75, 0.85, 1.0].map((val) => (
+            {[0.85, 0.90, 1.0, 1.10, 1.20].map((val) => (
               <Chip
                 key={val}
                 label={`${Math.round(val * 100)}%`}
@@ -174,7 +189,7 @@ export const ZoomController = () => {
               />
             ))}
 
-            <Tooltip title="Reset to default (75%)">
+            <Tooltip title="Reset to default (100%)">
               <IconButton
                 size="small"
                 onClick={handleReset}
@@ -187,6 +202,7 @@ export const ZoomController = () => {
                 <RestartAltIcon sx={{ fontSize: '1rem' }} />
               </IconButton>
             </Tooltip>
+
           </Box>
         )}
       </Paper>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { cartService } from '../services/cartService';
 import { useAuth } from './AuthContext';
 import { useNotification } from './NotificationContext';
@@ -6,6 +6,21 @@ import { useNotification } from './NotificationContext';
 const CartContext = createContext(null);
 
 const GUEST_CART_KEY = 'novastore_guest_cart';
+
+// Helper to compute subtotal, shipping, and total prices instantaneously
+const computePricing = (items = []) => {
+  const subtotal = items.reduce(
+    (sum, i) => sum + (i.product?.price || i.price || 0) * (i.quantity || 1),
+    0
+  );
+  const shippingFee = subtotal >= 50 || subtotal === 0 ? 0 : 10;
+  return {
+    subtotal,
+    shippingFee,
+    freeShippingThreshold: 50,
+    total: subtotal + shippingFee,
+  };
+};
 
 export const CartProvider = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -16,6 +31,9 @@ export const CartProvider = ({ children }) => {
     pricing: { subtotal: 0, shippingFee: 0, total: 0 },
   });
   const [loading, setLoading] = useState(false);
+
+  // Debounce map for remote quantity updates to prevent HTTP request flooding on rapid clicks
+  const quantityDebounceMap = useRef(new Map());
 
   // Fetch cart
   const fetchCart = useCallback(async () => {
@@ -31,7 +49,7 @@ export const CartProvider = ({ children }) => {
               await cartService.mergeCart(guestItems);
               localStorage.removeItem(GUEST_CART_KEY);
             }
-          } catch (e) {
+          } catch {
             localStorage.removeItem(GUEST_CART_KEY);
           }
         }
@@ -51,17 +69,12 @@ export const CartProvider = ({ children }) => {
       if (saved) {
         try {
           const items = JSON.parse(saved);
-          const subtotal = items.reduce((sum, i) => sum + (i.price || 0) * (i.quantity || 1), 0);
           setCart({
             items,
             itemCount: items.reduce((sum, i) => sum + (i.quantity || 1), 0),
-            pricing: {
-              subtotal,
-              shippingFee: subtotal >= 50 || subtotal === 0 ? 0 : 10,
-              total: subtotal + (subtotal >= 50 || subtotal === 0 ? 0 : 10),
-            },
+            pricing: computePricing(items),
           });
-        } catch (e) {
+        } catch {
           setCart({ items: [], itemCount: 0, pricing: { subtotal: 0, shippingFee: 0, total: 0 } });
         }
       } else {
@@ -74,166 +87,206 @@ export const CartProvider = ({ children }) => {
     fetchCart();
   }, [fetchCart]);
 
+  // Instant Optimistic Add to Cart (0ms perceived response)
   const addToCart = async (product, quantity = 1, variantId = null) => {
     const qty = Math.max(1, parseInt(quantity, 10));
+    const previousCart = cart;
 
-    if (isAuthenticated) {
-      try {
-        const res = await cartService.addToCart(product._id, qty, variantId);
-        if (res.success && res.data) {
-          setCart(res.data);
-          notify(`Added "${product.name}" to cart.`, 'success');
+    // 1. Optimistic Local Calculation
+    const currentItems = [...cart.items];
+    const existingIdx = currentItems.findIndex(
+      (i) =>
+        (i.product?._id || i.productId) === product._id &&
+        (i.variantId === variantId || (!i.variantId && !variantId))
+    );
+
+    let optimisticItems;
+    const unitPrice = product.price || 0;
+
+    if (existingIdx > -1) {
+      optimisticItems = currentItems.map((item, idx) => {
+        if (idx === existingIdx) {
+          const newQty = item.quantity + qty;
+          const pPrice = item.product?.price || item.price || unitPrice;
+          return {
+            ...item,
+            quantity: newQty,
+            itemTotal: pPrice * newQty,
+          };
         }
-      } catch (err) {
-        notify(err.message || 'Could not add product to cart.', 'error');
-        throw err;
-      }
+        return item;
+      });
     } else {
-      // Guest cart logic
-      const currentItems = [...cart.items];
-      const existingIdx = currentItems.findIndex(
-        i => (i.product?._id || i.productId) === product._id
-      );
-
-      if (existingIdx > -1) {
-        currentItems[existingIdx].quantity += qty;
-      } else {
-        currentItems.push({
-          _id: `guest-${Date.now()}-${Math.random()}`,
+      optimisticItems = [
+        ...currentItems,
+        {
+          _id: `temp-${Date.now()}-${Math.random()}`,
           productId: product._id,
           product: {
             _id: product._id,
             name: product.name,
             slug: product.slug,
             images: product.images,
-            price: product.price,
+            price: unitPrice,
             compareAtPrice: product.compareAtPrice,
             stockQuantity: product.stockQuantity,
             SKU: product.SKU,
             isActive: product.isActive,
           },
-          price: product.price,
+          variantId: variantId || null,
+          price: unitPrice,
           quantity: qty,
-          itemTotal: product.price * qty,
+          itemTotal: unitPrice * qty,
           isAvailable: true,
-        });
-      }
-
-      const subtotal = currentItems.reduce(
-        (sum, i) => sum + (i.product?.price || i.price || 0) * i.quantity,
-        0
-      );
-      const newCart = {
-        items: currentItems,
-        itemCount: currentItems.reduce((sum, i) => sum + i.quantity, 0),
-        pricing: {
-          subtotal,
-          shippingFee: subtotal >= 50 ? 0 : 10,
-          total: subtotal + (subtotal >= 50 ? 0 : 10),
         },
-      };
-
-      setCart(newCart);
-      localStorage.setItem(
-        GUEST_CART_KEY,
-        JSON.stringify(
-          currentItems.map(i => ({
-            productId: i.product?._id || i.productId,
-            quantity: i.quantity,
-            price: i.product?.price || i.price,
-            product: i.product,
-          }))
-        )
-      );
-      notify(`Added "${product.name}" to cart.`, 'success');
+      ];
     }
-  };
 
-  const updateQuantity = async (itemId, quantity) => {
-    const qty = parseInt(quantity, 10);
+    const optimisticCart = {
+      ...cart,
+      items: optimisticItems,
+      itemCount: optimisticItems.reduce((sum, i) => sum + i.quantity, 0),
+      pricing: computePricing(optimisticItems),
+    };
 
+    // INSTANT UI UPDATE (0ms)
+    setCart(optimisticCart);
+    notify(`Added "${product.name}" to cart.`, 'success');
+
+    // 2. Synchronize with backend
     if (isAuthenticated) {
       try {
-        const res = await cartService.updateCartItem(itemId, qty);
+        const res = await cartService.addToCart(product._id, qty, variantId);
         if (res.success && res.data) {
           setCart(res.data);
         }
       } catch (err) {
-        notify(err.message || 'Could not update item quantity.', 'error');
+        // Roll back on backend validation failure (e.g. out of stock)
+        setCart(previousCart);
+        notify(err.message || 'Could not add product to cart.', 'error');
+        throw err;
       }
     } else {
-      let currentItems = [...cart.items];
-      if (qty <= 0) {
-        currentItems = currentItems.filter(i => i._id !== itemId);
-      } else {
-        const item = currentItems.find(i => i._id === itemId);
-        if (item) {
-          item.quantity = qty;
-          item.itemTotal = (item.product?.price || item.price) * qty;
-        }
-      }
-
-      const subtotal = currentItems.reduce(
-        (sum, i) => sum + (i.product?.price || i.price || 0) * i.quantity,
-        0
-      );
-      const newCart = {
-        items: currentItems,
-        itemCount: currentItems.reduce((sum, i) => sum + i.quantity, 0),
-        pricing: {
-          subtotal,
-          shippingFee: subtotal >= 50 || subtotal === 0 ? 0 : 10,
-          total: subtotal + (subtotal >= 50 || subtotal === 0 ? 0 : 10),
-        },
-      };
-      setCart(newCart);
       localStorage.setItem(
         GUEST_CART_KEY,
         JSON.stringify(
-          currentItems.map(i => ({
+          optimisticItems.map((i) => ({
             productId: i.product?._id || i.productId,
             quantity: i.quantity,
             price: i.product?.price || i.price,
             product: i.product,
+            variantId: i.variantId,
           }))
         )
       );
     }
   };
 
+  // Instant Optimistic Quantity Update with rapid-click debouncing (0ms perceived response)
+  const updateQuantity = async (itemId, quantity) => {
+    const qty = parseInt(quantity, 10);
+    const previousCart = cart;
+
+    let optimisticItems;
+    if (qty <= 0) {
+      optimisticItems = cart.items.filter((i) => i._id !== itemId);
+    } else {
+      optimisticItems = cart.items.map((item) => {
+        if (item._id === itemId) {
+          const unitPrice = item.product?.price || item.price || 0;
+          return {
+            ...item,
+            quantity: qty,
+            itemTotal: unitPrice * qty,
+          };
+        }
+        return item;
+      });
+    }
+
+    const optimisticCart = {
+      ...cart,
+      items: optimisticItems,
+      itemCount: optimisticItems.reduce((sum, i) => sum + i.quantity, 0),
+      pricing: computePricing(optimisticItems),
+    };
+
+    // INSTANT UI UPDATE (0ms) - user sees quantity number change immediately
+    setCart(optimisticCart);
+
+    if (isAuthenticated) {
+      // Clear any pending debounce timer for this item
+      if (quantityDebounceMap.current.has(itemId)) {
+        clearTimeout(quantityDebounceMap.current.get(itemId));
+      }
+
+      // Debounce server write request by 250ms so rapid clicks don't flood the network
+      const timer = setTimeout(async () => {
+        quantityDebounceMap.current.delete(itemId);
+        try {
+          const res = await cartService.updateCartItem(itemId, qty);
+          if (res.success && res.data) {
+            setCart(res.data);
+          }
+        } catch (err) {
+          // Roll back on failure
+          setCart(previousCart);
+          notify(err.message || 'Could not update item quantity.', 'error');
+        }
+      }, 250);
+
+      quantityDebounceMap.current.set(itemId, timer);
+    } else {
+      localStorage.setItem(
+        GUEST_CART_KEY,
+        JSON.stringify(
+          optimisticItems.map((i) => ({
+            productId: i.product?._id || i.productId,
+            quantity: i.quantity,
+            price: i.product?.price || i.price,
+            product: i.product,
+            variantId: i.variantId,
+          }))
+        )
+      );
+    }
+  };
+
+  // Instant Optimistic Item Removal (0ms perceived response)
   const removeFromCart = async (itemId) => {
+    const previousCart = cart;
+    const optimisticItems = cart.items.filter((i) => i._id !== itemId);
+    const optimisticCart = {
+      ...cart,
+      items: optimisticItems,
+      itemCount: optimisticItems.reduce((sum, i) => sum + i.quantity, 0),
+      pricing: computePricing(optimisticItems),
+    };
+
+    // INSTANT UI UPDATE (0ms) - item vanishes immediately
+    setCart(optimisticCart);
+    notify('Item removed from cart.', 'info');
+
     if (isAuthenticated) {
       try {
         const res = await cartService.removeFromCart(itemId);
         if (res.success && res.data) {
           setCart(res.data);
-          notify('Item removed from cart.', 'info');
         }
       } catch (err) {
+        setCart(previousCart);
         notify(err.message || 'Could not remove item.', 'error');
       }
     } else {
-      const currentItems = cart.items.filter(i => i._id !== itemId);
-      const subtotal = currentItems.reduce(
-        (sum, i) => sum + (i.product?.price || i.price || 0) * i.quantity,
-        0
-      );
-      const newCart = {
-        items: currentItems,
-        itemCount: currentItems.reduce((sum, i) => sum + i.quantity, 0),
-        pricing: {
-          subtotal,
-          shippingFee: subtotal >= 50 || subtotal === 0 ? 0 : 10,
-          total: subtotal + (subtotal >= 50 || subtotal === 0 ? 0 : 10),
-        },
-      };
-      setCart(newCart);
-      localStorage.setItem(GUEST_CART_KEY, JSON.stringify(currentItems));
-      notify('Item removed from cart.', 'info');
+      localStorage.setItem(GUEST_CART_KEY, JSON.stringify(optimisticItems));
     }
   };
 
+  // Instant Clear Cart
   const clearCart = async () => {
+    localStorage.removeItem(GUEST_CART_KEY);
+    setCart({ items: [], itemCount: 0, pricing: { subtotal: 0, shippingFee: 0, total: 0 } });
+
     if (isAuthenticated) {
       try {
         await cartService.clearCart();
@@ -241,8 +294,6 @@ export const CartProvider = ({ children }) => {
         console.warn('Error clearing remote cart:', err);
       }
     }
-    localStorage.removeItem(GUEST_CART_KEY);
-    setCart({ items: [], itemCount: 0, pricing: { subtotal: 0, shippingFee: 0, total: 0 } });
   };
 
   return (
@@ -270,3 +321,5 @@ export const useCart = () => {
   }
   return context;
 };
+
+export default CartContext;
