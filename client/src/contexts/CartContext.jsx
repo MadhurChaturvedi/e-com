@@ -68,12 +68,47 @@ export const CartProvider = ({ children }) => {
       const saved = localStorage.getItem(GUEST_CART_KEY);
       if (saved) {
         try {
-          const items = JSON.parse(saved);
-          setCart({
-            items,
-            itemCount: items.reduce((sum, i) => sum + (i.quantity || 1), 0),
-            pricing: computePricing(items),
-          });
+          const rawItems = JSON.parse(saved);
+          if (Array.isArray(rawItems)) {
+            const normalizedItems = rawItems.map((item) => {
+              const p = (typeof item.product === 'object' && item.product) || {};
+              const resolvedImages = Array.isArray(p.images) && p.images.length > 0
+                ? p.images
+                : (Array.isArray(item.images) && item.images.length > 0
+                  ? item.images
+                  : (p.image ? [p.image] : (item.image ? [item.image] : [])));
+              const primaryImage = resolvedImages[0] || p.image || item.image || '';
+              const unitPrice = p.price ?? item.price ?? 0;
+              const prodName = p.name || item.name || 'Product';
+              const pid = p._id || item.productId || item._id;
+
+              return {
+                ...item,
+                _id: item._id || `guest-${pid}-${Date.now()}`,
+                productId: pid,
+                product: {
+                  ...p,
+                  _id: pid,
+                  name: prodName,
+                  images: resolvedImages,
+                  image: primaryImage,
+                  price: unitPrice,
+                },
+                image: primaryImage,
+                images: resolvedImages,
+                name: prodName,
+                price: unitPrice,
+              };
+            });
+
+            setCart({
+              items: normalizedItems,
+              itemCount: normalizedItems.reduce((sum, i) => sum + (i.quantity || 1), 0),
+              pricing: computePricing(normalizedItems),
+            });
+          } else {
+            setCart({ items: [], itemCount: 0, pricing: { subtotal: 0, shippingFee: 0, total: 0 } });
+          }
         } catch {
           setCart({ items: [], itemCount: 0, pricing: { subtotal: 0, shippingFee: 0, total: 0 } });
         }
@@ -92,22 +127,31 @@ export const CartProvider = ({ children }) => {
     const qty = Math.max(1, parseInt(quantity, 10));
     const previousCart = cart;
 
+    // Resolve product ID reliably
+    const targetProductId = product._id || product.id || product.productId;
+
+    // Resolve distinct product images reliably
+    const resolvedImages = Array.isArray(product.images) && product.images.length > 0
+      ? product.images
+      : (product.image ? [product.image] : (typeof product.images === 'string' ? [product.images] : []));
+    const primaryImage = resolvedImages[0] || product.image || '';
+    const unitPrice = product.price ?? 0;
+
     // 1. Optimistic Local Calculation
     const currentItems = [...cart.items];
     const existingIdx = currentItems.findIndex(
       (i) =>
-        (i.product?._id || i.productId) === product._id &&
+        (i.product?._id || i.productId || i._id) === targetProductId &&
         (i.variantId === variantId || (!i.variantId && !variantId))
     );
 
     let optimisticItems;
-    const unitPrice = product.price || 0;
 
     if (existingIdx > -1) {
       optimisticItems = currentItems.map((item, idx) => {
         if (idx === existingIdx) {
           const newQty = item.quantity + qty;
-          const pPrice = item.product?.price || item.price || unitPrice;
+          const pPrice = item.product?.price ?? item.price ?? unitPrice;
           return {
             ...item,
             quantity: newQty,
@@ -121,18 +165,22 @@ export const CartProvider = ({ children }) => {
         ...currentItems,
         {
           _id: `temp-${Date.now()}-${Math.random()}`,
-          productId: product._id,
+          productId: targetProductId,
           product: {
-            _id: product._id,
+            _id: targetProductId,
             name: product.name,
             slug: product.slug,
-            images: product.images,
+            images: resolvedImages,
+            image: primaryImage,
             price: unitPrice,
             compareAtPrice: product.compareAtPrice,
             stockQuantity: product.stockQuantity,
             SKU: product.SKU,
-            isActive: product.isActive,
+            isActive: product.isActive !== false,
           },
+          image: primaryImage,
+          images: resolvedImages,
+          name: product.name,
           variantId: variantId || null,
           price: unitPrice,
           quantity: qty,
@@ -156,7 +204,7 @@ export const CartProvider = ({ children }) => {
     // 2. Synchronize with backend
     if (isAuthenticated) {
       try {
-        const res = await cartService.addToCart(product._id, qty, variantId);
+        const res = await cartService.addToCart(targetProductId, qty, variantId);
         if (res.success && res.data) {
           setCart(res.data);
         }
@@ -171,10 +219,13 @@ export const CartProvider = ({ children }) => {
         GUEST_CART_KEY,
         JSON.stringify(
           optimisticItems.map((i) => ({
-            productId: i.product?._id || i.productId,
+            productId: i.product?._id || i.productId || i._id,
             quantity: i.quantity,
-            price: i.product?.price || i.price,
+            price: i.product?.price ?? i.price ?? unitPrice,
             product: i.product,
+            image: i.image || i.product?.image || primaryImage,
+            images: i.images || i.product?.images || resolvedImages,
+            name: i.name || i.product?.name,
             variantId: i.variantId,
           }))
         )

@@ -55,7 +55,7 @@ import { categoryService } from '../services/categoryService';
 import { productService } from '../services/productService';
 import { MegaSearchDropdown } from '../components/common/MegaSearchDropdown';
 import { orderSound } from '../utils/orderSound';
-
+import { optimizeImageUrl } from '../utils/imageUrl';
 import { api } from '../services/api';
 
 export const StoreLayout = () => {
@@ -570,11 +570,21 @@ export const StoreLayout = () => {
           {cart.items && cart.items.length > 0 ? (
             <Stack spacing={2}>
               {cart.items.map((item, index) => {
-                const prod = item.productId || item;
-                const itemId = item._id || prod._id;
+                const prod = (typeof item.product === 'object' && item.product) || (typeof item.productId === 'object' && item.productId) || item;
+                const itemId = item._id || prod._id || `cart-item-${index}`;
+                const prodName = prod.name || item.name || 'Product';
+                const prodPrice = prod.price ?? item.price ?? 0;
+                const rawImage =
+                  (Array.isArray(prod.images) && prod.images[0]) ||
+                  prod.image ||
+                  (Array.isArray(item.images) && item.images[0]) ||
+                  item.image ||
+                  '';
+                const displayImage = optimizeImageUrl(rawImage, { width: 140, quality: 75 });
+
                 return (
                   <Box
-                    key={index}
+                    key={itemId || index}
                     sx={{
                       display: 'flex',
                       gap: 2,
@@ -586,16 +596,32 @@ export const StoreLayout = () => {
                   >
                     <Box
                       component="img"
-                      src={prod.images?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=120&q=80'}
-                      alt={prod.name}
-                      sx={{ width: 68, height: 68, borderRadius: 2, objectFit: 'cover' }}
+                      src={displayImage}
+                      alt={prodName}
+                      loading="lazy"
+                      decoding="async"
+                      sx={{ width: 68, height: 68, borderRadius: 2, objectFit: 'cover', flexShrink: 0 }}
                     />
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="subtitle2" fontWeight={700} noWrap sx={{ maxWidth: 180 }}>
-                        {prod.name}
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                      <Typography
+                        component={RouterLink}
+                        to={`/product/${prod.slug || prod._id || itemId}`}
+                        onClick={() => setCartDrawerOpen(false)}
+                        variant="subtitle2"
+                        fontWeight={700}
+                        noWrap
+                        sx={{
+                          display: 'block',
+                          maxWidth: 180,
+                          color: 'text.primary',
+                          textDecoration: 'none',
+                          '&:hover': { color: 'primary.main' },
+                        }}
+                      >
+                        {prodName}
                       </Typography>
                       <Typography variant="caption" fontWeight={800} color="secondary.main">
-                        ${(item.price || prod.price)?.toFixed(2)}
+                        ${prodPrice.toFixed(2)}
                       </Typography>
 
                       <Stack direction="row" alignItems="center" spacing={1} mt={1}>

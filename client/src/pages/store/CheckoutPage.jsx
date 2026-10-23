@@ -464,32 +464,45 @@ export const CheckoutPage = () => {
                   Ordered Items ({items.length}):
                 </Typography>
                 <Stack spacing={2} mb={3}>
-                  {items.map((i) => (
-                    <Stack key={i._id} direction="row" justifyContent="space-between" alignItems="center">
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        <Box
-                          component="img"
-                          src={optimizeImageUrl(i.product?.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e', { width: 100, quality: 75 })}
-                          alt={i.product?.name}
-                          loading="lazy"
-                          decoding="async"
-                          sx={{ width: 48, height: 48, borderRadius: 1.5, objectFit: 'cover' }}
-                        />
+                  {items.map((i) => {
+                    const p = (typeof i.product === 'object' && i.product) || (typeof i.productId === 'object' && i.productId) || i;
+                    const rawImage =
+                      (Array.isArray(p.images) && p.images[0]) ||
+                      p.image ||
+                      (Array.isArray(i.images) && i.images[0]) ||
+                      i.image ||
+                      '';
+                    const displayImage = optimizeImageUrl(rawImage, { width: 100, quality: 75 });
+                    const productName = p.name || i.name || 'Product';
+                    const unitPrice = p.price ?? i.price ?? 0;
 
-                        <Box>
-                          <Typography variant="body2" fontWeight={700} noWrap sx={{ maxWidth: 300 }}>
-                            {i.product?.name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Qty: {i.quantity} &times; ${(i.product?.price || i.price || 0).toFixed(2)}
-                          </Typography>
-                        </Box>
+                    return (
+                      <Stack key={i._id} direction="row" justifyContent="space-between" alignItems="center">
+                        <Stack direction="row" spacing={2} alignItems="center">
+                          <Box
+                            component="img"
+                            src={displayImage}
+                            alt={productName}
+                            loading="lazy"
+                            decoding="async"
+                            sx={{ width: 48, height: 48, borderRadius: 1.5, objectFit: 'cover', flexShrink: 0 }}
+                          />
+
+                          <Box>
+                            <Typography variant="body2" fontWeight={700} noWrap sx={{ maxWidth: 300 }}>
+                              {productName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Qty: {i.quantity} &times; ${unitPrice.toFixed(2)}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                        <Typography variant="body2" fontWeight={700}>
+                          ${(unitPrice * i.quantity).toFixed(2)}
+                        </Typography>
                       </Stack>
-                      <Typography variant="body2" fontWeight={700}>
-                        ${((i.product?.price || i.price || 0) * i.quantity).toFixed(2)}
-                      </Typography>
-                    </Stack>
-                  ))}
+                    );
+                  })}
                 </Stack>
 
                 <Divider sx={{ my: 3 }} />

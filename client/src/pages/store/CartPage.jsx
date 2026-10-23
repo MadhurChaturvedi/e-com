@@ -157,8 +157,18 @@ export const CartPage = () => {
               </TableHead>
               <TableBody>
                 {items.map((item) => {
-                  const p = item.product || {};
+                  const p = (typeof item.product === 'object' && item.product) || (typeof item.productId === 'object' && item.productId) || item;
                   const isAvailable = item.isAvailable !== false && p.isActive !== false;
+                  const rawImage =
+                    (Array.isArray(p.images) && p.images[0]) ||
+                    p.image ||
+                    (Array.isArray(item.images) && item.images[0]) ||
+                    item.image ||
+                    '';
+                  const displayImage = optimizeImageUrl(rawImage, { width: 140, quality: 75 });
+                  const productName = p.name || item.name || 'Product';
+                  const unitPrice = p.price ?? item.price ?? 0;
+
                   return (
                     <TableRow key={item._id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                       {/* Product Thumbnail & Name */}
@@ -166,8 +176,8 @@ export const CartPage = () => {
                         <Stack direction="row" spacing={2} alignItems="center">
                           <Box
                             component="img"
-                            src={optimizeImageUrl(p.images?.[0] || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e', { width: 140, quality: 75 })}
-                            alt={p.name}
+                            src={displayImage}
+                            alt={productName}
                             loading="lazy"
                             decoding="async"
                             sx={{
@@ -176,13 +186,14 @@ export const CartPage = () => {
                               borderRadius: 2,
                               objectFit: 'cover',
                               border: '1px solid #e2e8f0',
+                              flexShrink: 0,
                             }}
                           />
 
                           <Box>
                             <Typography
                               component={RouterLink}
-                              to={`/product/${p.slug || p._id}`}
+                              to={`/product/${p.slug || p._id || item._id}`}
                               variant="subtitle2"
                               fontWeight={700}
                               sx={{
@@ -191,7 +202,7 @@ export const CartPage = () => {
                                 '&:hover': { color: 'primary.main' },
                               }}
                             >
-                              {p.name}
+                              {productName}
                             </Typography>
                             {p.SKU && (
                               <Typography variant="caption" color="text.secondary" display="block">
@@ -208,7 +219,7 @@ export const CartPage = () => {
                       {/* Unit Price */}
                       <TableCell align="center">
                         <Typography variant="body2" fontWeight={600}>
-                          ${(p.price || item.price || 0).toFixed(2)}
+                          ${unitPrice.toFixed(2)}
                         </Typography>
                       </TableCell>
 

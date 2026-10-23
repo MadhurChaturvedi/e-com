@@ -101,6 +101,29 @@ export const ProductsPage = () => {
     loadData(1);
   }, [debouncedSearch]);
 
+  const getCategorySampleImage = (categoryName) => {
+    const lower = (categoryName || '').toLowerCase();
+    if (lower.includes('fashion') || lower.includes('cloth') || lower.includes('apparel')) {
+      return 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=800&q=80';
+    }
+    if (lower.includes('shoe') || lower.includes('footwear')) {
+      return 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80';
+    }
+    if (lower.includes('computer') || lower.includes('laptop') || lower.includes('tech')) {
+      return 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80';
+    }
+    if (lower.includes('phone') || lower.includes('mobile')) {
+      return 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80';
+    }
+    if (lower.includes('home') || lower.includes('furni') || lower.includes('decor')) {
+      return 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80';
+    }
+    if (lower.includes('watch') || lower.includes('jewel') || lower.includes('access')) {
+      return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80';
+    }
+    return 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=800&q=80';
+  };
+
   const handleOpenCreate = () => {
     setEditingId(null);
     setFormData({
@@ -112,7 +135,7 @@ export const ProductsPage = () => {
       price: '',
       compareAtPrice: '',
       stockQuantity: '10',
-      imagesText: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80',
+      imagesText: '',
       isTrending: false,
       isFeatured: false,
       isActive: true,
@@ -151,6 +174,10 @@ export const ProductsPage = () => {
       .map(s => s.trim())
       .filter(Boolean);
 
+    const categoryObj = categories.find((c) => c._id === formData.categoryId);
+    const categoryName = categoryObj?.name || '';
+    const fallbackImage = getCategorySampleImage(categoryName);
+
     const payload = {
       name: formData.name,
       description: formData.description,
@@ -160,7 +187,7 @@ export const ProductsPage = () => {
       price: Number(formData.price),
       compareAtPrice: formData.compareAtPrice ? Number(formData.compareAtPrice) : 0,
       stockQuantity: Number(formData.stockQuantity),
-      images: imagesArray.length > 0 ? imagesArray : ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80'],
+      images: imagesArray.length > 0 ? imagesArray : [fallbackImage],
       isTrending: formData.isTrending,
       isFeatured: formData.isFeatured,
       isActive: formData.isActive,
@@ -465,14 +492,64 @@ export const ProductsPage = () => {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  required
                   multiline
-                  rows={3}
+                  rows={2}
                   label="Image URLs (One URL per line)"
                   value={formData.imagesText}
                   onChange={(e) => setFormData({ ...formData, imagesText: e.target.value })}
-                  helperText="Paste high-res image URLs (or local /uploads/... URLs)"
+                  placeholder="https://images.unsplash.com/... or /uploads/..."
+                  helperText="Enter distinct image URLs (one per line), or pick a preset below, or leave blank to auto-assign from selected category."
                 />
+                <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 0.8, mt: 1 }}>
+                  <Typography variant="caption" sx={{ alignSelf: 'center', color: 'text.secondary', fontWeight: 600 }}>
+                    Quick presets:
+                  </Typography>
+                  <Chip
+                    size="small"
+                    label="✨ Auto Category"
+                    onClick={() => {
+                      const categoryObj = categories.find((c) => c._id === formData.categoryId);
+                      setFormData({ ...formData, imagesText: getCategorySampleImage(categoryObj?.name) });
+                    }}
+                    sx={{ cursor: 'pointer' }}
+                  />
+                  <Chip
+                    size="small"
+                    label="👟 Shoes"
+                    onClick={() => setFormData({ ...formData, imagesText: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80' })}
+                    sx={{ cursor: 'pointer' }}
+                  />
+                  <Chip
+                    size="small"
+                    label="💻 Laptop"
+                    onClick={() => setFormData({ ...formData, imagesText: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80' })}
+                    sx={{ cursor: 'pointer' }}
+                  />
+                  <Chip
+                    size="small"
+                    label="📱 Smartphone"
+                    onClick={() => setFormData({ ...formData, imagesText: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80' })}
+                    sx={{ cursor: 'pointer' }}
+                  />
+                  <Chip
+                    size="small"
+                    label="🎧 Headphones"
+                    onClick={() => setFormData({ ...formData, imagesText: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80' })}
+                    sx={{ cursor: 'pointer' }}
+                  />
+                  <Chip
+                    size="small"
+                    label="⌚ Watch"
+                    onClick={() => setFormData({ ...formData, imagesText: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80' })}
+                    sx={{ cursor: 'pointer' }}
+                  />
+                  <Chip
+                    size="small"
+                    label="👕 Apparel"
+                    onClick={() => setFormData({ ...formData, imagesText: 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=800&q=80' })}
+                    sx={{ cursor: 'pointer' }}
+                  />
+                </Stack>
               </Grid>
 
               <Grid item xs={12}>

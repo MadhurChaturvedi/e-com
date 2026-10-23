@@ -26,23 +26,34 @@ class CartService {
     for (const item of cart.items) {
       if (!item.product) continue;
       const p = item.product;
-      const unitPrice = p.price;
+      const unitPrice = p.price ?? 0;
       const itemTotal = unitPrice * item.quantity;
       subtotal += itemTotal;
 
+      const resolvedImages = Array.isArray(p.images) && p.images.length > 0
+        ? p.images
+        : (typeof p.images === 'string' ? [p.images] : (p.image ? [p.image] : []));
+      const primaryImage = resolvedImages[0] || p.image || '';
+
       items.push({
         _id: item._id,
+        productId: p._id,
         product: {
           _id: p._id,
           name: p.name,
           slug: p.slug,
-          images: p.images,
+          images: resolvedImages,
+          image: primaryImage,
           price: p.price,
           compareAtPrice: p.compareAtPrice,
           stockQuantity: p.stockQuantity,
           SKU: p.SKU,
           isActive: p.isActive,
         },
+        image: primaryImage,
+        images: resolvedImages,
+        name: p.name,
+        price: unitPrice,
         variantId: item.variantId,
         quantity: item.quantity,
         itemTotal,
@@ -177,11 +188,14 @@ class CartService {
     }
 
     for (const guestItem of guestItems) {
-      const p = await Product.findById(guestItem.productId);
+      const pid = guestItem.productId || guestItem.product?._id || guestItem.product || guestItem._id;
+      if (!pid) continue;
+
+      const p = await Product.findById(pid);
       if (!p || !p.isActive) continue;
 
       const existingIndex = cart.items.findIndex(
-        (i) => i.product.toString() === guestItem.productId
+        (i) => i.product.toString() === pid.toString()
       );
 
       const qty = Math.min(
@@ -195,6 +209,7 @@ class CartService {
         } else {
           cart.items.push({
             product: p._id,
+            variantId: guestItem.variantId || null,
             quantity: qty,
             priceAtAddition: p.price,
           });

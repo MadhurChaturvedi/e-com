@@ -186,9 +186,11 @@ export const ProductDetailsPage = () => {
     }
   };
 
-  const images = product.images && product.images.length > 0
+  const images = Array.isArray(product.images) && product.images.length > 0
     ? product.images
-    : ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80'];
+    : (product.image
+      ? [product.image]
+      : ['https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=800&q=80']);
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>

@@ -52,7 +52,9 @@ export const ProductCard = ({ product }) => {
   };
 
   const rawImage =
-    product.images?.[0] ||
+    (Array.isArray(product.images) && product.images[0]) ||
+    product.image ||
+    (typeof product.images === 'string' ? product.images : '') ||
     'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=420&q=75';
   const displayImage = optimizeImageUrl(rawImage, { width: 420, quality: 75 });
   const imageSrcSet = getOptimizedSrcSet(rawImage, [280, 420, 600], { quality: 75 });
