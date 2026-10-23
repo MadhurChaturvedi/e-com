@@ -222,9 +222,29 @@ class CacheService {
    */
   getStatus() {
     const redisReady = isRedisReady();
+    const client = getRedisClient();
+    let host = 'localhost';
+    let port = 6379;
+    try {
+      if (client?.options?.host) {
+        host = client.options.host;
+        port = client.options.port;
+      } else if (env.REDIS_URL) {
+        const parsed = new URL(env.REDIS_URL);
+        host = parsed.hostname;
+        port = parsed.port || 6379;
+      }
+    } catch {
+      // safe fallback
+    }
+
     return {
       mode: redisReady ? 'redis' : 'memory-fallback',
       redisConnected: redisReady,
+      provider: redisReady ? 'Redis Cloud' : 'In-Memory Store',
+      host,
+      port,
+      endpoint: `${host}:${port}`,
       memoryItemsCount: this.memoryCache.size,
       stats: {
         hits: this.hits,

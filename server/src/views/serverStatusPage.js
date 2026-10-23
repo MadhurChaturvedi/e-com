@@ -833,22 +833,25 @@ export const renderServerStatusHtml = (req) => {
       </div>
 
       <!-- Cache Accelerator -->
-      <div class="metric-card">
+      <div class="metric-card" style="${isRedisMode ? 'border-color: rgba(56, 189, 248, 0.4);' : ''}">
         <div class="metric-head">
           <span class="metric-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
             </svg>
-            Cache Engine
+            Cache Accelerator
           </span>
-          <span class="metric-badge ${isRedisMode ? 'badge-ok' : 'badge-ok'}">
-            ${isRedisMode ? 'REDIS ACTIVE' : 'IN-MEMORY'}
+          <span class="metric-badge badge-ok">
+            ${isRedisMode ? 'REDIS CLOUD' : 'IN-MEMORY'}
           </span>
         </div>
-        <div class="metric-value" style="font-size: 1.35rem; color: #38bdf8;">
-          ${isRedisMode ? 'Redis L1 Cache' : 'In-Memory Store'}
+        <div class="metric-value" style="font-size: 1.3rem; color: #38bdf8;">
+          ${isRedisMode ? 'Redis Cloud Connected' : 'In-Memory Store'}
         </div>
         <div class="metric-sub">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; word-break: break-all; color: var(--text-secondary);">${cacheStatus.endpoint || 'redis.io'}</span>
+        </div>
+        <div class="metric-sub" style="margin-top: 6px;">
           <span>Hit Ratio: ${cacheStatus.stats.hitRatio} (${cacheStatus.stats.hits} hits / ${cacheStatus.stats.misses} misses)</span>
         </div>
       </div>
