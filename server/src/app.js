@@ -11,6 +11,11 @@ import { apiLimiter } from './middlewares/rateLimit.middleware.js';
 import { storageService } from './services/storageService.js';
 import { connectDB } from './config/db.js';
 import { renderServerStatusHtml } from './views/serverStatusPage.js';
+import { cacheService } from './services/cacheService.js';
+import { initRedis } from './config/redis.js';
+
+// Initialize Redis asynchronously on application initialization
+initRedis();
 
 const app = express();
 app.set('trust proxy', env.TRUST_PROXY);
@@ -97,6 +102,7 @@ const healthPayload = () => ({
     state: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
     host: mongoose.connection.host || 'unknown',
   },
+  cache: cacheService.getStatus(),
 });
 
 app.get('/health/live', (req, res) => {
@@ -147,6 +153,7 @@ app.get('/', async (req, res) => {
       service: 'NovaStore API Engine',
       status: 'operational',
       database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+      cache: cacheService.getStatus().mode,
       endpoints: {
         products: '/api/v1/products',
         categories: '/api/v1/categories',

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 import app from '../app.js';
 import { connectDB, disconnectDB } from '../config/db.js';
+import { disconnectRedis } from '../config/redis.js';
 import { env } from '../config/env.js';
 
 describe('E-Commerce REST API Integration Tests', () => {
@@ -15,6 +16,7 @@ describe('E-Commerce REST API Integration Tests', () => {
   });
 
   after(async () => {
+    await disconnectRedis();
     await disconnectDB();
   });
 
@@ -145,4 +147,48 @@ describe('E-Commerce REST API Integration Tests', () => {
     assert.ok(orderRes.body.data.orderNumber);
     assert.equal(orderRes.body.data.fulfillmentStatus, 'pending');
   });
+
+  test('GET /health - Returns system health and cache engine status', async () => {
+    const res = await request(app).get('/health');
+    assert.equal(res.status, 200);
+    assert.equal(res.body.status, 'healthy');
+    assert.ok(res.body.cache);
+    assert.ok(['redis', 'memory-fallback'].includes(res.body.cache.mode));
+  });
+
+  test('Cache Acceleration: GET /api/v1/home serves cached responses with high speed', async () => {
+    // Request 1: primes cache
+    const res1 = await request(app).get('/api/v1/home');
+    assert.equal(res1.status, 200);
+    assert.ok(res1.headers['x-cache']);
+
+    // Request 2: must be a cache HIT
+    const res2 = await request(app).get('/api/v1/home');
+    assert.equal(res2.status, 200);
+    assert.equal(res2.headers['x-cache'], 'HIT');
+    assert.ok(res2.headers['x-cache-engine']);
+  });
+
+  test('Cache Invalidation: Product update purges cached product queries', async () => {
+    // 1. Prime product cache
+    const list1 = await request(app).get('/api/v1/products?limit=3');
+    assert.equal(list1.status, 200);
+
+    const list2 = await request(app).get('/api/v1/products?limit=3');
+    assert.equal(list2.status, 200);
+    assert.equal(list2.headers['x-cache'], 'HIT');
+
+    // 2. Admin updates product status -> triggers cacheService.invalidateProducts()
+    const patchRes = await request(app)
+      .patch(`/api/v1/products/${sampleProductId}/status`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ isTrending: true });
+    assert.equal(patchRes.status, 200);
+
+    // 3. Next product query must be a fresh cache MISS or fresh data
+    const list3 = await request(app).get('/api/v1/products?limit=3');
+    assert.equal(list3.status, 200);
+    assert.equal(list3.headers['x-cache'], 'MISS');
+  });
 });
+

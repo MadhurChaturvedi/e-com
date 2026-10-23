@@ -1,110 +1,29 @@
 import { Router } from 'express';
+import { getHomeData } from '../controllers/homeController.js';
 import {
   getTrendingProducts,
   getFeaturedProducts,
   getBestSellers,
   getNewArrivals,
 } from '../controllers/productController.js';
-import { Banner } from '../models/Banner.js';
-import { Category } from '../models/Category.js';
-import { Brand } from '../models/Brand.js';
-import { Product } from '../models/Product.js';
-import { successResponse } from '../utils/apiResponse.js';
+import { cacheRoute } from '../middlewares/cache.middleware.js';
+import { cacheService } from '../services/cacheService.js';
 
 const router = Router();
 
-// In-memory cache for fast sub-millisecond response
-let homeCache = null;
-let homeCacheExpiry = 0;
-const CACHE_TTL_MS = 30 * 1000; // 30 seconds
-
+// Backward-compatible cache invalidation hook
 export const invalidateHomeCache = () => {
-  homeCache = null;
-  homeCacheExpiry = 0;
+  cacheService.invalidateHome().catch((err) => {
+    console.warn('[HomeRoutes] Cache invalidation warning:', err.message);
+  });
 };
 
-// Full homepage payload for lightning-fast initial page load
-router.get('/', async (req, res, next) => {
-  try {
-    const nowTime = Date.now();
-    if (homeCache && nowTime < homeCacheExpiry) {
-      res.setHeader('X-Cache', 'HIT');
-      res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
-      return successResponse(res, homeCache, 'Home sections data retrieved from cache.');
-    }
+// Full homepage payload with 60s Redis/memory caching
+router.get('/', cacheRoute(60), getHomeData);
 
-    const now = new Date();
-    const bannerQuery = {
-      isActive: true,
-      $and: [
-        { $or: [{ startDate: null }, { startDate: { $lte: now } }] },
-        { $or: [{ endDate: null }, { endDate: { $gte: now } }] },
-      ],
-    };
-
-    const [
-      banners,
-      categories,
-      brands,
-      trending,
-      featured,
-      bestSellers,
-      newArrivals,
-    ] = await Promise.all([
-      Banner.find(bannerQuery).sort({ displayOrder: 1 }).limit(6).lean(),
-      Category.find({ isActive: true, parentCategory: null }).sort({ displayOrder: 1 }).limit(8).lean(),
-      Brand.find({ isActive: true }).sort({ displayOrder: 1 }).limit(8).lean(),
-      Product.find({ isActive: true, isTrending: true })
-        .populate('categoryId', 'name slug')
-        .populate('brandId', 'name slug logo')
-        .sort({ createdAt: -1 })
-        .limit(8)
-        .lean(),
-      Product.find({ isActive: true, isFeatured: true })
-        .populate('categoryId', 'name slug')
-        .populate('brandId', 'name slug logo')
-        .sort({ createdAt: -1 })
-        .limit(8)
-        .lean(),
-      Product.find({ isActive: true })
-        .populate('categoryId', 'name slug')
-        .populate('brandId', 'name slug logo')
-        .sort({ salesCount: -1, averageRating: -1 })
-        .limit(8)
-        .lean(),
-      Product.find({ isActive: true })
-        .populate('categoryId', 'name slug')
-        .populate('brandId', 'name slug logo')
-        .sort({ createdAt: -1 })
-        .limit(8)
-        .lean(),
-    ]);
-
-    const payload = {
-      banners,
-      categories,
-      brands,
-      trending,
-      featured,
-      bestSellers,
-      newArrivals,
-    };
-
-    homeCache = payload;
-    homeCacheExpiry = nowTime + CACHE_TTL_MS;
-
-    res.setHeader('X-Cache', 'MISS');
-    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
-    return successResponse(res, payload, 'Home sections data retrieved.');
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.get('/trending', getTrendingProducts);
-router.get('/featured', getFeaturedProducts);
-router.get('/best-sellers', getBestSellers);
-router.get('/new-arrivals', getNewArrivals);
+router.get('/trending', cacheRoute(120), getTrendingProducts);
+router.get('/featured', cacheRoute(120), getFeaturedProducts);
+router.get('/best-sellers', cacheRoute(120), getBestSellers);
+router.get('/new-arrivals', cacheRoute(120), getNewArrivals);
 
 export default router;
-

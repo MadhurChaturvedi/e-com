@@ -7,7 +7,7 @@ export const errorHandler = (err, req, res, next) => {
 
   let statusCode = err.statusCode || 500;
   let message = err.message || 'Internal Server Error';
-  let errors = null;
+  let errors = err.details || null;
 
   // Mongoose validation error
   if (err.name === 'ValidationError') {

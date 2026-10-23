@@ -10,12 +10,13 @@ import {
 import { requireAuth } from '../middlewares/auth.middleware.js';
 import { requireAdmin } from '../middlewares/role.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
+import { cacheRoute } from '../middlewares/cache.middleware.js';
 import { bannerValidator } from '../validators/orderValidators.js';
 
 const router = Router();
 
-// Public route
-router.get('/active', getActiveBanners);
+// Public route with caching
+router.get('/active', cacheRoute(180), getActiveBanners);
 
 // Admin routes
 router.get('/', requireAuth, requireAdmin, getAllBanners);

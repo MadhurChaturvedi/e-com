@@ -16,9 +16,10 @@ NovaStore is an enterprise-grade full-stack e-commerce web application engineere
 
 ### Backend
 - **Runtime**: Node.js v24+ with JavaScript ES Modules (`"type": "module"`).
-- **Framework**: Express.js RESTful API architecture.
+- **Framework & Architecture**: Express.js RESTful API structured with a decoupled Controller-Service-Repository architecture (`authService`, `productService`, `cartService`, `orderService`, `categoryService`, `brandService`, `homeService`, `dashboardService`, `couponService`, `storageService`).
+- **High-Speed Redis Caching**: Dual-engine caching system (`cacheService`) using `ioredis` with non-blocking SCAN iteration, selective cache tag invalidation on mutations, route-level caching (`cacheRoute` middleware), and zero-config in-memory fallback.
 - **Database & ODM**: MongoDB with Mongoose ODM (indexes, validation, references, and aggregation pipelines).
-- **Security**: JWT Authentication with secure HTTP-only cookies, bcrypt password hashing, Helmet HTTP security headers, CORS with whitelist origin configuration, express-rate-limit protection.
+- **Security**: JWT Authentication with secure HTTP-only cookies, bcrypt password hashing, Helmet HTTP security headers, CORS with whitelist origin configuration, express-rate-limit protection, and ReDoS sanitization.
 - **Uploads**: Multer with dedicated storage service abstraction, MIME/extension verification, and randomized safe file naming.
 - **Inventory Consistency**: Atomic inventory updates on checkout and cancellation preventing overselling and race conditions.
 

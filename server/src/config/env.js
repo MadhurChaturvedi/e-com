@@ -98,6 +98,10 @@ export const env = {
   TRUST_PROXY: trustProxy,
   ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'admin@store.com',
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'Admin@123456',
+  REDIS_URL: process.env.REDIS_URL || '',
+  REDIS_ENABLED: process.env.REDIS_ENABLED !== 'false' && Boolean(process.env.REDIS_URL || process.env.REDIS_HOST),
+  CACHE_TTL_DEFAULT: parseInteger('CACHE_TTL_DEFAULT', 300, 1, 86400),
+  CACHE_PREFIX: process.env.CACHE_PREFIX || 'novastore:',
   IS_PRODUCTION: nodeEnv === 'production',
 };
 

@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { env } from '../config/env.js';
+import { cacheService } from '../services/cacheService.js';
 
 export const renderServerStatusHtml = (req) => {
   const dbConnected = mongoose.connection.readyState === 1;
@@ -22,6 +23,9 @@ export const renderServerStatusHtml = (req) => {
   const heapTotalMb = (memory.heapTotal / 1024 / 1024).toFixed(1);
   const heapPercent = Math.min(100, Math.round((memory.heapUsed / memory.heapTotal) * 100));
   const rssMb = (memory.rss / 1024 / 1024).toFixed(1);
+
+  const cacheStatus = cacheService.getStatus();
+  const isRedisMode = cacheStatus.mode === 'redis';
 
   const clientUrl =
     env.CLIENT_URL ||
@@ -281,7 +285,7 @@ export const renderServerStatusHtml = (req) => {
 
     @media (min-width: 1024px) {
       .metrics-grid {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       }
     }
 
@@ -825,6 +829,27 @@ export const renderServerStatusHtml = (req) => {
         </div>
         <div class="metric-sub">
           <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.74rem;">${dbHost}</span>
+        </div>
+      </div>
+
+      <!-- Cache Accelerator -->
+      <div class="metric-card">
+        <div class="metric-head">
+          <span class="metric-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            Cache Engine
+          </span>
+          <span class="metric-badge ${isRedisMode ? 'badge-ok' : 'badge-ok'}">
+            ${isRedisMode ? 'REDIS ACTIVE' : 'IN-MEMORY'}
+          </span>
+        </div>
+        <div class="metric-value" style="font-size: 1.35rem; color: #38bdf8;">
+          ${isRedisMode ? 'Redis L1 Cache' : 'In-Memory Store'}
+        </div>
+        <div class="metric-sub">
+          <span>Hit Ratio: ${cacheStatus.stats.hitRatio} (${cacheStatus.stats.hits} hits / ${cacheStatus.stats.misses} misses)</span>
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 import app from './app.js';
 import { connectDB, disconnectDB } from './config/db.js';
+import { disconnectRedis } from './config/redis.js';
 import { env } from './config/env.js';
 
 const startServer = async () => {
@@ -13,6 +14,7 @@ const startServer = async () => {
       console.log(` Port        : ${env.PORT}`);
       console.log(` API Base    : /api/v1`);
       console.log(` Client URL  : ${env.CLIENT_URL}`);
+      console.log(` Cache Mode  : ${env.REDIS_ENABLED ? (env.REDIS_URL ? 'Redis Client Active' : 'In-Memory Fallback') : 'In-Memory Cache'}`);
       console.log(`=========================================`);
     });
 
@@ -36,6 +38,7 @@ const startServer = async () => {
         await new Promise((resolve, reject) => {
           server.close(error => (error ? reject(error) : resolve()));
         });
+        await disconnectRedis();
         await disconnectDB();
         clearTimeout(forceShutdown);
         console.log('[Server] Process terminated.');

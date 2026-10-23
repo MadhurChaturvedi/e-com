@@ -14,6 +14,7 @@ import couponRoutes from './couponRoutes.js';
 import dashboardRoutes from './dashboardRoutes.js';
 import settingsRoutes from './settingsRoutes.js';
 import uploadRoutes from './uploadRoutes.js';
+import { cacheService } from '../services/cacheService.js';
 
 const router = Router();
 
@@ -39,6 +40,7 @@ router.get('/health', (req, res) => {
     status: mongoose.connection.readyState === 1 ? 'healthy' : 'unhealthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
+    cache: cacheService.getStatus(),
   };
   res.status(payload.status === 'healthy' ? 200 : 503).json(payload);
 });
