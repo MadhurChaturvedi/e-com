@@ -56,6 +56,8 @@ import { productService } from '../services/productService';
 import { MegaSearchDropdown } from '../components/common/MegaSearchDropdown';
 import { orderSound } from '../utils/orderSound';
 
+import { api } from '../services/api';
+
 export const StoreLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -76,8 +78,8 @@ export const StoreLayout = () => {
   });
 
   useEffect(() => {
-    fetch('/health')
-      .then((res) => res.json())
+    api
+      .get('/health', { skipCache: true })
       .then((data) => {
         if (data?.cache) {
           setCacheStatus(data.cache);
