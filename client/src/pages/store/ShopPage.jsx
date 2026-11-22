@@ -4,26 +4,19 @@ import Container from '@mui/material/Container';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
-import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Checkbox from '@mui/material/Checkbox';
-import Radio from '@mui/material/Radio';
-import RadioGroup from '@mui/material/RadioGroup';
 import Button from '@mui/material/Button';
 import Pagination from '@mui/material/Pagination';
 import Skeleton from '@mui/material/Skeleton';
-import Divider from '@mui/material/Divider';
 import Slider from '@mui/material/Slider';
-import Chip from '@mui/material/Chip';
 import SearchIcon from '@mui/icons-material/Search';
-import FilterListIcon from '@mui/icons-material/FilterList';
-import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import TuneIcon from '@mui/icons-material/Tune';
+import CloseIcon from '@mui/icons-material/Close';
 
 import { ProductCard } from '../../components/products/ProductCard';
 import { productService } from '../../services/productService';
@@ -31,6 +24,15 @@ import { categoryService } from '../../services/categoryService';
 import { brandService } from '../../services/brandService';
 import { useDebounce } from '../../hooks/useDebounce';
 
+/**
+ * Editorial Shop & Category Page
+ * Implements DESIGN.md:
+ * - Page Title: uppercase, left-aligned, {typography.section-display}, 3rem top, 4rem bottom margin
+ * - Filter Pills: horizontal row of sharp rectangular buttons (zero border-radius, 1px black border,
+ *   inverted black fill with white text when active)
+ * - 4-column product grid on desktop with equal width items
+ * - Clean flat materiality: zero border-radius, no elevation shadows
+ */
 export const ShopPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -39,6 +41,7 @@ export const ShopPage = () => {
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 12, totalPages: 1 });
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
   // Filter States from URL or defaults
   const currentCategory = searchParams.get('category') || '';
@@ -73,7 +76,7 @@ export const ShopPage = () => {
     setPriceRange([minPriceParam, maxPriceParam]);
   }, [currentSearch, minPriceParam, maxPriceParam]);
 
-  // Debounced live search auto-sync (prevents database spam on every letter typed)
+  // Debounced search sync
   useEffect(() => {
     const trimmed = debouncedSearchInput.trim();
     if (trimmed !== currentSearch.trim()) {
@@ -88,7 +91,7 @@ export const ShopPage = () => {
     }
   }, [debouncedSearchInput]);
 
-  // Fetch products from backend API
+  // Fetch products
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
@@ -144,7 +147,7 @@ export const ShopPage = () => {
     } else {
       newParams.set(key, value);
     }
-    newParams.set('page', '1'); // reset to page 1 on filter change
+    newParams.set('page', '1');
     setSearchParams(newParams);
   };
 
@@ -156,337 +159,354 @@ export const ShopPage = () => {
     setSearchParams(newParams);
   };
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    updateParam('search', searchInput.trim());
-  };
-
-  const handleResetFilters = () => {
-    setSearchParams({});
-    setSearchInput('');
-    setPriceRange([0, 3000]);
-  };
+  const activeCategoryObj = categories.find((c) => c.slug === currentCategory);
+  const pageTitle = activeCategoryObj
+    ? activeCategoryObj.name
+    : currentFilter === 'trending'
+    ? 'Trending Now'
+    : currentFilter === 'featured'
+    ? 'Campaign Essentials'
+    : currentSearch
+    ? `Search: "${currentSearch}"`
+    : 'View All';
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      {/* Page Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h3" fontWeight={800} fontFamily="'Outfit', sans-serif">
-          Explore Products
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Browse authentic items with verified specifications and immediate dispatch
-        </Typography>
-      </Box>
-
-      <Grid container spacing={4}>
-        {/* Left Sidebar Filter Panel */}
-        <Grid item xs={12} md={3}>
-          <Paper
-            elevation={0}
+    <Box sx={{ width: '100%', backgroundColor: '#ffffff', minHeight: '80vh' }}>
+      <Container maxWidth="xl" disableGutters sx={{ px: { xs: 2, md: 3 } }}>
+        {/* 1. Page Title as defined in DESIGN.md:
+            Single heading element, uppercase, left-aligned, section-display typography,
+            3rem top margin, 1.5rem sides, 3.5rem bottom margin */}
+        <Box sx={{ pt: { xs: 4, md: 6 }, pb: { xs: 2, md: 3 } }}>
+          <Typography
+            variant="h2"
             sx={{
-              p: 3,
-              borderRadius: 3.5,
-              border: '1px solid #e2e8f0',
-              backgroundColor: '#ffffff',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontWeight: 300,
+              fontSize: { xs: '2rem', md: '2.75rem' },
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              lineHeight: 1,
+              color: '#000000',
+              mb: 1,
             }}
           >
-            <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <FilterListIcon fontSize="small" color="primary" />
-                <Typography variant="h6" fontWeight={700}>
-                  Filters
-                </Typography>
-              </Stack>
-              <Button
-                size="small"
-                startIcon={<RestartAltIcon />}
-                onClick={handleResetFilters}
-                sx={{ fontSize: '0.75rem' }}
+            {pageTitle}
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#737373', fontSize: '0.8125rem' }}>
+            {pagination.total} products available
+          </Typography>
+        </Box>
+
+        {/* 2. Filter Pills as defined in DESIGN.md:
+            Horizontal scrollable row of button-like elements with sharp rectangular corners (borderRadius: 0),
+            1px black border in default state, active state inverts with black fill and white text */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            overflowX: 'auto',
+            py: 1.5,
+            mb: 4,
+            borderBottom: '1px solid #e6e6e6',
+            borderTop: '1px solid #e6e6e6',
+            '&::-webkit-scrollbar': { display: 'none' },
+          }}
+        >
+          {/* "ALL" Pill */}
+          <Box
+            component="button"
+            onClick={() => updateParam('category', '')}
+            sx={{
+              borderRadius: 0,
+              border: '1px solid #000000',
+              backgroundColor: !currentCategory ? '#000000' : '#ffffff',
+              color: !currentCategory ? '#ffffff' : '#000000',
+              px: 2,
+              py: 0.9,
+              fontSize: '0.875rem', // typography.label
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontWeight: 400,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'background-color 0.2s ease, color 0.2s ease',
+              '&:hover': {
+                backgroundColor: !currentCategory ? '#262626' : '#e6e6e6',
+              },
+            }}
+          >
+            All Items
+          </Box>
+
+          {/* Trending Pill */}
+          <Box
+            component="button"
+            onClick={() => updateParam('filter', currentFilter === 'trending' ? '' : 'trending')}
+            sx={{
+              borderRadius: 0,
+              border: '1px solid #000000',
+              backgroundColor: currentFilter === 'trending' ? '#000000' : '#ffffff',
+              color: currentFilter === 'trending' ? '#ffffff' : '#000000',
+              px: 2,
+              py: 0.9,
+              fontSize: '0.875rem',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontWeight: 400,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              '&:hover': {
+                backgroundColor: currentFilter === 'trending' ? '#262626' : '#e6e6e6',
+              },
+            }}
+          >
+            Trending
+          </Box>
+
+          {/* Category Filter Pills */}
+          {categories.map((c) => {
+            const isActive = currentCategory === c.slug;
+            return (
+              <Box
+                key={c._id}
+                component="button"
+                onClick={() => updateParam('category', isActive ? '' : c.slug)}
+                sx={{
+                  borderRadius: 0,
+                  border: '1px solid #000000',
+                  backgroundColor: isActive ? '#000000' : '#ffffff',
+                  color: isActive ? '#ffffff' : '#000000',
+                  px: 2,
+                  py: 0.9,
+                  fontSize: '0.875rem',
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontWeight: 400,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  '&:hover': {
+                    backgroundColor: isActive ? '#262626' : '#e6e6e6',
+                  },
+                }}
               >
-                Reset
-              </Button>
-            </Stack>
+                {c.name}
+              </Box>
+            );
+          })}
+        </Box>
 
-            <Divider sx={{ mb: 2.5 }} />
-
-            {/* Categories Filter */}
-            <Typography variant="subtitle2" fontWeight={700} mb={1.5}>
-              Categories
-            </Typography>
-            <RadioGroup
-              value={currentCategory}
-              onChange={(e) => updateParam('category', e.target.value)}
-              sx={{ mb: 2 }}
-            >
-              <FormControlLabel
-                value=""
-                control={<Radio size="small" />}
-                label={<Typography variant="body2">All Categories</Typography>}
-              />
-              {categories.map((c) => (
-                <FormControlLabel
-                  key={c._id}
-                  value={c.slug}
-                  control={<Radio size="small" />}
-                  label={<Typography variant="body2">{c.name}</Typography>}
-                />
-              ))}
-            </RadioGroup>
-
-            <Divider sx={{ mb: 2.5 }} />
-
-            {/* Brands Filter */}
-            {brands.length > 0 && (
-              <>
-                <Typography variant="subtitle2" fontWeight={700} mb={1.5}>
-                  Brands
-                </Typography>
-                <RadioGroup
-                  value={currentBrand}
-                  onChange={(e) => updateParam('brand', e.target.value)}
-                  sx={{ mb: 2 }}
-                >
-                  <FormControlLabel
-                    value=""
-                    control={<Radio size="small" />}
-                    label={<Typography variant="body2">All Brands</Typography>}
-                  />
-                  {brands.map((b) => (
-                    <FormControlLabel
-                      key={b._id}
-                      value={b.slug}
-                      control={<Radio size="small" />}
-                      label={<Typography variant="body2">{b.name}</Typography>}
-                    />
-                  ))}
-                </RadioGroup>
-                <Divider sx={{ mb: 2.5 }} />
-              </>
-            )}
-
-            {/* Price Range Filter */}
-            <Typography variant="subtitle2" fontWeight={700} mb={1}>
-              Price Range ($)
-            </Typography>
-            <Slider
-              value={priceRange}
-              onChange={(e, val) => setPriceRange(val)}
-              valueLabelDisplay="auto"
-              min={0}
-              max={3000}
-              step={20}
-              sx={{ color: 'primary.main', mb: 1 }}
-            />
-            <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5}>
-              <Typography variant="caption" fontWeight={600} color="text.secondary">
-                ${priceRange[0]}
-              </Typography>
-              <Typography variant="caption" fontWeight={600} color="text.secondary">
-                ${priceRange[1]}
-              </Typography>
-            </Stack>
+        {/* 3. Filter Controls & Sorting Bar */}
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 2,
+            mb: 4,
+          }}
+        >
+          {/* Toggle Filter Panel & Search */}
+          <Stack direction="row" spacing={1.5} alignItems="center">
             <Button
-              fullWidth
               variant="outlined"
               size="small"
-              onClick={handlePriceApply}
-              sx={{ borderRadius: 2, mb: 2.5 }}
-            >
-              Apply Price
-            </Button>
-
-            <Divider sx={{ mb: 2.5 }} />
-
-            {/* In Stock & Availability Filter */}
-            <Typography variant="subtitle2" fontWeight={700} mb={1}>
-              Availability
-            </Typography>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={currentInStock}
-                  onChange={(e) => updateParam('inStock', e.target.checked)}
-                  size="small"
-                />
-              }
-              label={<Typography variant="body2">In Stock Only</Typography>}
-              sx={{ mb: 2 }}
-            />
-
-            <Divider sx={{ mb: 2.5 }} />
-
-            {/* Rating Filter */}
-            <Typography variant="subtitle2" fontWeight={700} mb={1}>
-              Minimum Customer Rating
-            </Typography>
-            <RadioGroup
-              value={currentRating}
-              onChange={(e) => updateParam('rating', e.target.value)}
-            >
-              <FormControlLabel value="" control={<Radio size="small" />} label={<Typography variant="body2">Any Rating</Typography>} />
-              <FormControlLabel value="4" control={<Radio size="small" />} label={<Typography variant="body2">4★ and above</Typography>} />
-              <FormControlLabel value="3" control={<Radio size="small" />} label={<Typography variant="body2">3★ and above</Typography>} />
-            </RadioGroup>
-          </Paper>
-        </Grid>
-
-        {/* Right Main Product Area */}
-        <Grid item xs={12} md={9}>
-          {/* Controls Bar: Search, Result Count, Sort */}
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2,
-              mb: 3,
-              borderRadius: 3,
-              border: '1px solid #e2e8f0',
-              display: 'flex',
-              flexDirection: { xs: 'column', sm: 'row' },
-              justifyContent: 'space-between',
-              alignItems: { xs: 'stretch', sm: 'center' },
-              gap: 2,
-            }}
-          >
-            {/* Inline Search */}
-            <Box component="form" onSubmit={handleSearchSubmit} sx={{ flexGrow: 1, maxWidth: { xs: '100%', sm: 360 } }}>
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Search products in view..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Box>
-
-            {/* Results count & Sort */}
-            <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-              <Typography variant="body2" color="text.secondary" fontWeight={600} noWrap>
-                Showing {products.length} of {pagination.total} items
-              </Typography>
-
-              <FormControl size="small" sx={{ minWidth: 160 }}>
-                <Select
-                  value={currentSort}
-                  onChange={(e) => updateParam('sort', e.target.value)}
-                  displayEmpty
-                >
-                  <MenuItem value="newest">Sort: Newest</MenuItem>
-                  <MenuItem value="price-asc">Price: Low to High</MenuItem>
-                  <MenuItem value="price-desc">Price: High to Low</MenuItem>
-                  <MenuItem value="rating">Highest Rated</MenuItem>
-                  <MenuItem value="popular">Best Selling</MenuItem>
-                </Select>
-              </FormControl>
-            </Stack>
-          </Paper>
-
-          {/* Active Filter Chips */}
-          {(currentCategory || currentBrand || currentSearch || currentInStock || currentRating || currentFilter) && (
-            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2.5 }}>
-              {currentCategory && (
-                <Chip
-                  label={`Category: ${currentCategory}`}
-                  onDelete={() => updateParam('category', '')}
-                  size="small"
-                  color="primary"
-                />
-              )}
-              {currentBrand && (
-                <Chip
-                  label={`Brand: ${currentBrand}`}
-                  onDelete={() => updateParam('brand', '')}
-                  size="small"
-                  color="primary"
-                />
-              )}
-              {currentSearch && (
-                <Chip
-                  label={`Search: "${currentSearch}"`}
-                  onDelete={() => updateParam('search', '')}
-                  size="small"
-                />
-              )}
-              {currentInStock && (
-                <Chip
-                  label="In Stock Only"
-                  onDelete={() => updateParam('inStock', false)}
-                  size="small"
-                />
-              )}
-              {currentRating && (
-                <Chip
-                  label={`Rating >= ${currentRating}★`}
-                  onDelete={() => updateParam('rating', '')}
-                  size="small"
-                />
-              )}
-            </Stack>
-          )}
-
-          {/* Product Grid */}
-          {loading ? (
-            <Grid container spacing={3}>
-              {Array.from(new Array(6)).map((_, i) => (
-                <Grid item key={i} xs={12} sm={6} lg={4}>
-                  <Skeleton variant="rounded" height={360} sx={{ borderRadius: 3 }} />
-                </Grid>
-              ))}
-            </Grid>
-          ) : products.length === 0 ? (
-            <Paper
+              startIcon={<TuneIcon sx={{ fontSize: '1rem' }} />}
+              onClick={() => setFilterDrawerOpen((prev) => !prev)}
               sx={{
-                p: 8,
-                textAlign: 'center',
-                borderRadius: 4,
-                border: '1px dashed #cbd5e1',
-                backgroundColor: '#ffffff',
+                borderRadius: 0,
+                border: '1px solid #000000',
+                color: '#000000',
+                fontSize: '0.8125rem',
+                py: 0.8,
+                px: 2,
               }}
             >
-              <Typography variant="h5" fontWeight={700} mb={1}>
-                No Products Found
-              </Typography>
-              <Typography variant="body2" color="text.secondary" mb={3} maxWidth={400} mx="auto">
-                No items match your active filters. Try broadening your criteria or reset filters to see all available inventory.
-              </Typography>
-              <Button variant="contained" onClick={handleResetFilters}>
-                Reset All Filters
-              </Button>
-            </Paper>
-          ) : (
-            <>
-              <Grid container spacing={3}>
-                {products.map((product) => (
-                  <Grid item key={product._id} xs={12} sm={6} lg={4}>
-                    <ProductCard product={product} />
-                  </Grid>
-                ))}
-              </Grid>
+              {filterDrawerOpen ? 'Hide Filters' : 'Filter & Sort'}
+            </Button>
 
-              {/* Pagination */}
-              {pagination.totalPages > 1 && (
-                <Box sx={{ mt: 5, display: 'flex', justifyContent: 'center' }}>
-                  <Pagination
-                    count={pagination.totalPages}
-                    page={currentPage}
-                    onChange={(e, val) => updateParam('page', val)}
-                    color="primary"
-                    shape="rounded"
-                    size="large"
-                  />
+            {/* Quick in-stock toggle */}
+            <Box
+              component="button"
+              onClick={() => updateParam('inStock', !currentInStock)}
+              sx={{
+                borderRadius: 0,
+                border: '1px solid #000000',
+                backgroundColor: currentInStock ? '#000000' : '#ffffff',
+                color: currentInStock ? '#ffffff' : '#000000',
+                px: 1.5,
+                py: 0.8,
+                fontSize: '0.8125rem',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                cursor: 'pointer',
+                textTransform: 'uppercase',
+              }}
+            >
+              In Stock Only
+            </Box>
+          </Stack>
+
+          {/* Sorting Dropdown */}
+          <Stack direction="row" spacing={2} alignItems="center">
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <Select
+                value={currentSort}
+                onChange={(e) => updateParam('sort', e.target.value)}
+                displayEmpty
+                sx={{
+                  borderRadius: 0,
+                  fontSize: '0.8125rem',
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: '#000000' },
+                }}
+              >
+                <MenuItem value="newest">Sort: Newest</MenuItem>
+                <MenuItem value="price-asc">Price: Low to High</MenuItem>
+                <MenuItem value="price-desc">Price: High to Low</MenuItem>
+                <MenuItem value="rating">Highest Rated</MenuItem>
+                <MenuItem value="popular">Best Selling</MenuItem>
+              </Select>
+            </FormControl>
+          </Stack>
+        </Box>
+
+        {/* Collapsible Secondary Filter Bar (Price, Brands) */}
+        {filterDrawerOpen && (
+          <Box
+            sx={{
+              p: 3,
+              mb: 4,
+              border: '1px solid #000000',
+              backgroundColor: '#ffffff',
+              borderRadius: 0,
+            }}
+          >
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 2fr' }, gap: 4 }}>
+              {/* Price Range */}
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, textTransform: 'uppercase', mb: 1.5 }}>
+                  Price Range (${priceRange[0]} - ${priceRange[1]})
+                </Typography>
+                <Slider
+                  value={priceRange}
+                  onChange={(e, val) => setPriceRange(val)}
+                  valueLabelDisplay="auto"
+                  min={0}
+                  max={3000}
+                  step={20}
+                  sx={{ color: '#000000', mb: 1 }}
+                />
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={handlePriceApply}
+                  sx={{ borderRadius: 0, fontSize: '0.75rem', mt: 1 }}
+                >
+                  Apply Price
+                </Button>
+              </Box>
+
+              {/* Brands */}
+              {brands.length > 0 && (
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, textTransform: 'uppercase', mb: 1.5 }}>
+                    Brand
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {brands.map((b) => {
+                      const isSelected = currentBrand === b.slug;
+                      return (
+                        <Box
+                          key={b._id}
+                          component="button"
+                          onClick={() => updateParam('brand', isSelected ? '' : b.slug)}
+                          sx={{
+                            borderRadius: 0,
+                            border: '1px solid #000000',
+                            backgroundColor: isSelected ? '#000000' : '#ffffff',
+                            color: isSelected ? '#ffffff' : '#000000',
+                            px: 1.5,
+                            py: 0.6,
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          {b.name}
+                        </Box>
+                      );
+                    })}
+                  </Box>
                 </Box>
               )}
-            </>
-          )}
-        </Grid>
-      </Grid>
-    </Container>
+            </Box>
+          </Box>
+        )}
+
+        {/* 4. Product Grid: 4 columns on desktop as specified in DESIGN.md
+            "Product grids default to four columns on desktop, with each card occupying equal width." */}
+        {loading ? (
+          <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+            {Array.from(new Array(8)).map((_, i) => (
+              <Grid item key={i} xs={6} sm={6} md={4} lg={3}>
+                <Skeleton variant="rectangular" height={360} sx={{ backgroundColor: '#e6e6e6', borderRadius: 0 }} />
+                <Skeleton variant="text" sx={{ mt: 1, width: '70%' }} />
+                <Skeleton variant="text" sx={{ width: '40%' }} />
+              </Grid>
+            ))}
+          </Grid>
+        ) : products.length === 0 ? (
+          <Box sx={{ py: 12, textAlign: 'center', border: '1px solid #e6e6e6' }}>
+            <Typography variant="h5" sx={{ textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>
+              No Products Found
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#737373', mb: 3 }}>
+              Try clearing some filters or browse another category.
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => setSearchParams({})}
+              sx={{ borderRadius: 0 }}
+            >
+              Clear All Filters
+            </Button>
+          </Box>
+        ) : (
+          <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+            {products.map((product) => (
+              <Grid item key={product._id} xs={6} sm={6} md={4} lg={3}>
+                <ProductCard product={product} />
+              </Grid>
+            ))}
+          </Grid>
+        )}
+
+        {/* 5. Pagination */}
+        {pagination.totalPages > 1 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <Pagination
+              count={pagination.totalPages}
+              page={currentPage}
+              onChange={(e, page) => updateParam('page', page)}
+              shape="rounded"
+              sx={{
+                '& .MuiPaginationItem-root': {
+                  borderRadius: 0,
+                  border: '1px solid #000000',
+                  color: '#000000',
+                  '&.Mui-selected': {
+                    backgroundColor: '#000000',
+                    color: '#ffffff',
+                  },
+                },
+              }}
+            />
+          </Box>
+        )}
+      </Container>
+    </Box>
   );
 };

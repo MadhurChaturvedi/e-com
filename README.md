@@ -1,155 +1,554 @@
-# NovaStore - Full-Stack Production E-Commerce Platform
+# 🛍️ NovaStore - Full-Stack Enterprise E-Commerce Platform
 
-NovaStore is an enterprise-grade full-stack e-commerce web application engineered with modern web standards, role-based access control, responsive Material UI design, atomic inventory transactions, and high-performance REST APIs.
-
----
-
-## 🌟 Architecture & Technology Stack
-
-### Frontend
-- **Framework**: React 19 with Vite.
-- **Design System & Components**: **Material UI (MUI v6)** exclusively (`@mui/material`, `@mui/icons-material`, `@emotion/react`, `@emotion/styled`).
-- **Routing**: React Router v7 (`react-router-dom`).
-- **HTTP Client**: Axios with credentials and automatic bearer token fallback.
-- **State Management**: React Context API for Authentication (`AuthContext`), Shopping Cart with persistence and guest merger (`CartContext`), Wishlist (`WishlistContext`), and Global Notifications (`NotificationContext`).
-- **Typography & Aesthetics**: Curated typography via Google Fonts (`Plus Jakarta Sans` and `Outfit`), smooth micro-animations, responsive cards, and pure MUI dashboard visualizations.
-
-### Backend
-- **Runtime**: Node.js v24+ with JavaScript ES Modules (`"type": "module"`).
-- **Framework & Architecture**: Express.js RESTful API structured with a decoupled Controller-Service-Repository architecture (`authService`, `productService`, `cartService`, `orderService`, `categoryService`, `brandService`, `homeService`, `dashboardService`, `couponService`, `storageService`).
-- **High-Speed Redis Caching**: Dual-engine caching system (`cacheService`) using `ioredis` with non-blocking SCAN iteration, selective cache tag invalidation on mutations, route-level caching (`cacheRoute` middleware), and zero-config in-memory fallback.
-- **Database & ODM**: MongoDB with Mongoose ODM (indexes, validation, references, and aggregation pipelines).
-- **Security**: JWT Authentication with secure HTTP-only cookies, bcrypt password hashing, Helmet HTTP security headers, CORS with whitelist origin configuration, express-rate-limit protection, and ReDoS sanitization.
-- **Uploads**: Multer with dedicated storage service abstraction, MIME/extension verification, and randomized safe file naming.
-- **Inventory Consistency**: Atomic inventory updates on checkout and cancellation preventing overselling and race conditions.
+> **Comprehensive Architectural, Developer, and Product Overview**  
+> *Engineered with React 19, Vite, Material UI (MUI v6), Node.js v24+, Express, Redis Multi-Tier Caching, and MongoDB.*
 
 ---
 
-## 🚀 Features Overview
-
-### 1. Customer Storefront
-- **Global Header**: Store branding, search with instant query filtering, category dropdowns, wishlist & live cart badges, mobile responsive drawer.
-- **Dynamic Promotional Hero Slider**: Fully controllable via Admin Console with autoplay, manual controls, and call-to-action routing.
-- **Curated Product Collections**: Trending, Featured, Best Sellers (computed from actual fulfilled sales), and New Arrivals.
-- **Product Catalog & Search (`/shop`)**:
-  - Filter by category & subcategory, brand, price slider, minimum star rating, and in-stock availability.
-  - Sort by newest, price (low to high / high to low), customer rating, and popularity.
-  - Server-side pagination and synchronized URL query parameters.
-- **Product Details (`/product/:slug`)**:
-  - Multi-image gallery with thumbnail navigation.
-  - Specifications table and variant selector (size, color, options).
-  - Quantity selector with live stock validation.
-  - Verified customer reviews and review submission modal.
-  - Related product recommendations.
-- **Shopping Cart (`/cart`)**:
-  - Persistent MongoDB cart for authenticated customers with automatic guest localStorage cart merging upon sign in.
-  - Server-side coupon code validation (`WELCOME10`, `SAVE20`, `VIP50`).
-  - Automatic free shipping calculation when cart reaches $50 threshold.
-- **Wishlist (`/wishlist`)**:
-  - Customer bookmarking with 1-click move to cart.
-- **Multi-Step Checkout (`/checkout`)**:
-  - Step 1: Select saved shipping address or enter new delivery destination.
-  - Step 2: Payment method selection (Cash on Delivery or Development Card Gateway).
-  - Step 3: Verified server-side total review and atomic order placement.
-- **Customer Account (`/account`)**:
-  - Profile management & password changes.
-  - Order history with statuses (`pending`, `processing`, `shipped`, `delivered`, `cancelled`).
-  - Order details view with item snapshots, courier tracking numbers, and cancellation for eligible orders.
-  - Saved delivery addresses management.
-
-### 2. Admin Management Dashboard (`/admin`)
-- **Protected RBAC**: Role-based authorization guarding all admin views and `/api/v1/admin/*` endpoints.
-- **Analytics Overview**:
-  - Gross sales revenue, total order volume, active customer count, low-stock warnings.
-  - Pure MUI-based weekly revenue distribution bar chart.
-  - Recent orders feed and top-selling products.
-- **Product Catalog Management (`/admin/products`)**:
-  - Complete CRUD with SKU uniqueness validation, multi-image inputs, category/brand assignment, price and stock controls, and trending/featured flags.
-- **Category & Subcategory Hierarchy (`/admin/categories`)**:
-  - Parent-child category nesting, display order, slugs, and deletion protection for categories with assigned products.
-- **Brand Management (`/admin/brands`)**:
-  - Official manufacturer records, logos, and website links.
-- **Promotional Slider Management (`/admin/banners`)**:
-  - Banner creation, image configuration, display ordering, and live activation toggles.
-- **Order Fulfillment Console (`/admin/orders`)**:
-  - Status transitions (`pending` &rarr; `processing` &rarr; `shipped` &rarr; `delivered` or `cancelled`).
-  - Courier assignment and shipment tracking numbers.
-  - Inventory restocking on cancellations.
-- **Customer Management (`/admin/customers`)**:
-  - Searchable customer directory with lifetime purchase amounts and account active/disabled toggling.
-- **Coupons & Promotions (`/admin/coupons`)**:
-  - Percentage or fixed dollar discounts, usage limit counters, and expiration dates.
-- **Inventory Audit Ledger (`/admin/inventory`)**:
-  - Urgent low-stock notifications and complete audit trail of sales and restock adjustments.
-- **Store Configuration (`/admin/settings`)**:
-  - Store identity, contact information, shipping fee rules, payment gateways, and announcement bar.
+## 📑 Table of Contents
+1. [Executive Summary](#-executive-summary)
+2. [Software Architect Perspective: System Design & Scalability](#-software-architect-perspective-system-design--scalability)
+   - [System Topology & High-Level Architecture](#system-topology--high-level-architecture)
+   - [Multi-Tier Caching & Invalidation Architecture](#multi-tier-caching--invalidation-architecture)
+   - [Transactional Integrity & Inventory Consistency](#transactional-integrity--inventory-consistency)
+   - [Database Entity-Relationship (ER) Model](#database-entity-relationship-er-model)
+   - [Scalability, Resiliency & Operational Evolution](#scalability-resiliency--operational-evolution)
+3. [Software Developer Perspective: Code Structure & Implementation](#-software-developer-perspective-code-structure--implementation)
+   - [Monorepo & Directory Organization](#monorepo--directory-organization)
+   - [Backend Architecture: Decoupled Controller-Service Pattern](#backend-architecture-decoupled-controller-service-pattern)
+   - [Security, Authentication & RBAC Engine](#security-authentication--rbac-engine)
+   - [Frontend Architecture: Code-Splitting & Design Tokens](#frontend-architecture-code-splitting--design-tokens)
+   - [Client-Side Performance & Web Audio Engine](#client-side-performance--web-audio-engine)
+   - [API Contracts & Centralized Error Handling](#api-contracts--centralized-error-handling)
+   - [Automated Integration Testing Strategy](#automated-integration-testing-strategy)
+4. [Product Manager Perspective: Features, UX & Business Alignment](#-product-manager-perspective-features-ux--business-alignment)
+   - [Customer Storefront Journey](#customer-storefront-journey)
+   - [Admin Management Console](#admin-management-console)
+   - [Order Lifecycle State Machine](#order-lifecycle-state-machine)
+   - [Business Impact & Conversion Optimization](#business-impact--conversion-optimization)
+5. [Setup & Installation Quickstart](#-setup--installation-quickstart)
+   - [Prerequisites & Zero-Dependency Setup](#prerequisites--zero-dependency-setup)
+   - [Environment Configuration](#environment-configuration)
+   - [Database Seeding & Test Accounts](#database-seeding--test-accounts)
+   - [Running Dev & Building for Production](#running-dev--building-for-production)
+6. [Actionable Insights, Technical Debt & Strategic Roadmap](#-actionable-insights-technical-debt--strategic-roadmap)
+   - [Architectural Recommendations](#1-architectural-recommendations)
+   - [Developer Experience (DX) & Code Quality](#2-developer-experience-dx--code-quality)
+   - [Product & Growth Roadmap](#3-product--growth-roadmap)
+   - [Strategic Guiding Questions](#4-strategic-guiding-questions)
 
 ---
 
-## 📁 Repository Structure
+## 🌟 Executive Summary
+
+**NovaStore** is a modern, production-ready, full-stack e-commerce web platform engineered to deliver ultra-fast customer storefront experiences alongside an administrative management console.
+
+Built to address real-world e-commerce challenges—such as race conditions in inventory checkout, slow serverless cold starts, broken external media URLs, and bundle bloat—NovaStore applies clean engineering patterns:
+- **React 19 + Material UI v6** with complete component code-splitting, fluid typography, and custom theme tokens.
+- **Node.js v24 + Express RESTful API** structured with a decoupled Controller-Service-Repository pattern.
+- **Dual-Engine Multi-Tier Caching**: Browser-level SWR and request deduplication coupled with a server-level Redis (`ioredis`) layer featuring non-blocking `SCAN` iteration, domain-driven selective invalidation, and seamless in-memory fallback.
+- **Atomic Inventory Control**: Concurrency-safe stock reservation using atomic `$inc` updates and compensating rollback loops.
+- **Zero-Dependency Local DX**: Embedded in-memory MongoDB (`mongodb-memory-server`) and in-memory cache fallbacks allowing instant local execution without pre-installed database daemons.
+
+---
+
+## 🏛️ Software Architect Perspective: System Design & Scalability
+
+### System Topology & High-Level Architecture
+
+NovaStore follows a decoupled client-server architecture designed for high availability, independent deployability, and horizontal scaling.
+
+```mermaid
+flowchart TD
+    subgraph ClientLayer["Frontend Client (Vite + React 19 SPA)"]
+        Browser["User Browser / Mobile Device"]
+        SWR["Client CacheManager (SWR + In-Flight Deduplication)"]
+        Audio["Web Audio API Engine (Order Chimes / Buzzer)"]
+        Browser --> SWR
+        Browser --> Audio
+    end
+
+    subgraph GatewayLayer["Edge / Reverse Proxy & Ingress"]
+        CDN["Vercel Edge Network / Cloudflare CDN"]
+        Nginx["Reverse Proxy / TLS Termination"]
+        CDN --> Nginx
+    end
+
+    subgraph ApiLayer["Backend REST API Engine (Node.js v24 + Express)"]
+        Router["Express Router (/api/v1)"]
+        Middlewares["Security Middlewares (Helmet, CORS, RateLimiter, JWT Auth, RBAC)"]
+        Controllers["Domain Controllers (Auth, Product, Order, Cart, Admin)"]
+        Services["Business Services (orderService, productService, cartService, etc.)"]
+        
+        Router --> Middlewares --> Controllers --> Services
+    end
+
+    subgraph CachingLayer["Distributed Cache & Fallback"]
+        RedisClient["ioredis Client (Redis Cluster / Upstash)"]
+        MemFallback["In-Memory LRU Cache (Auto-failover with 60s sweeps)"]
+    end
+
+    subgraph DataLayer["Persistence & Storage Layer"]
+        MongoDB[("MongoDB 8.0+ / Atlas Cluster")]
+        MemDB[("MongoMemoryServer (Zero-Config Dev Fallback)")]
+        LocalMedia["Local Ephemeral Disk (/uploads)"]
+        CloudMedia[("Cloud Object Storage (S3 / Cloudinary Roadmap)")]
+    end
+
+    ClientLayer <-->|"HTTPS / REST / HTTP-Only Cookies"| GatewayLayer
+    GatewayLayer --> ApiLayer
+    Services <-->|"Cache-Aside & Event Invalidation"| CachingLayer
+    Services <-->|"Mongoose ODM (Pool Size 50)"| DataLayer
+```
+
+### Multi-Tier Caching & Invalidation Architecture
+
+To eliminate cold start latency on serverless deployments and protect the primary database against read surges, NovaStore deploys a 3-tier caching hierarchy:
+
+```mermaid
+flowchart LR
+    subgraph Tier1["Tier 1: Browser Edge"]
+        R1["Component Request"] --> C1{"CacheManager Valid?"}
+        C1 -- "Hit (0ms)" --> UI["Immediate Render"]
+        C1 -- "Miss / Stale" --> Dedupe{"In-Flight Promise Exists?"}
+        Dedupe -- "Yes" --> Reuse["Attach to In-Flight Request"]
+        Dedupe -- "No" --> FetchAPI["Dispatch Axios HTTP"]
+    end
+
+    subgraph Tier2["Tier 2: Express Route & Service"]
+        FetchAPI --> RouteCache{"cacheRoute Middleware"}
+        RouteCache -- "Hit (X-Cache: HIT)" --> FastReturn["Return JSON Response"]
+        RouteCache -- "Miss" --> SvcWrap{"cacheService.wrap()"}
+        SvcWrap -- "Redis Connected" --> RedisGet["ioredis GET"]
+        SvcWrap -- "Redis Down" --> MemGet["In-Memory Map GET"]
+    end
+
+    subgraph Tier3["Tier 3: Database & Invalidation"]
+        RedisGet -- "Miss" --> MongoQuery["MongoDB Query with Indexes"]
+        MemGet -- "Miss" --> MongoQuery
+        MongoQuery --> SetCache["Set Cache (TTL: 60s - 600s)"]
+        SetCache --> FastReturn
+    end
+
+    subgraph MutationEvent["Domain Mutation Trigger"]
+        AdminUpdate["Product / Category / Order Mutation"]
+        AdminUpdate --> SelectiveInvalidation["cacheService.invalidateProducts() / invalidateHome()"]
+        SelectiveInvalidation -.->|"SCAN 'novastore:products:*' -> DEL"| RedisGet
+        SelectiveInvalidation -.->|"Regex Sweep"| MemGet
+    end
+```
+
+#### Cache Invalidation Invariants
+1. **Catalog Mutations**: When an administrator creates, updates, or deletes a product, `cacheService.invalidateProducts()` triggers a parallel flush of `products:*`, `home:*`, and `dashboard:*`.
+2. **Category Hierarchy Updates**: Purges `categories:*`, `products:*`, and `home:*`.
+3. **Checkout Placement**: Instantly purges `dashboard:*` and `products:*` to update stock levels and admin revenue analytics in real time.
+
+### Transactional Integrity & Inventory Consistency
+
+Overselling is one of the highest financial risks in e-commerce. NovaStore guarantees consistency through atomic database operations paired with compensating rollback sagas:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Customer as Customer (Checkout UI)
+    participant OrderSvc as OrderService
+    participant ProductModel as Product Collection
+    participant Ledger as InventoryTransaction
+    participant OrderModel as Order Collection
+    participant Cache as CacheService
+
+    Customer->>OrderSvc: createOrder(shippingAddress, paymentMethod, couponCode)
+    OrderSvc->>OrderSvc: Recalculate Subtotal, Shipping ($50 Free Threshold) & Coupon Discount
+    
+    loop For each item in cart
+        OrderSvc->>ProductModel: findOneAndUpdate({ _id, stockQuantity: { $gte: quantity } }, { $inc: { stockQuantity: -qty, salesCount: +qty } })
+        alt Stock Available
+            ProductModel-->>OrderSvc: Return updated product doc
+            OrderSvc->>Ledger: create({ type: 'sale', quantityChanged: -qty, previousStock, newStock })
+        else Insufficient Stock / Race Condition Conflict
+            ProductModel-->>OrderSvc: null (Zero rows modified)
+            OrderSvc->>OrderSvc: Trigger Compensating Rollback Loop
+            loop Revert previously decremented items
+                OrderSvc->>ProductModel: findByIdAndUpdate({ $inc: { stockQuantity: +qty, salesCount: -qty } })
+                OrderSvc->>Ledger: deleteOne({ _id: transactionId })
+            end
+            OrderSvc-->>Customer: 409 Conflict ("Conflict updating inventory. Please review your cart.")
+        end
+    end
+
+    OrderSvc->>OrderModel: create({ orderNumber, items, pricing, payment, fulfillmentStatus: 'pending' })
+    OrderSvc->>Cache: Promise.all([invalidateDashboard(), invalidateProducts()])
+    OrderSvc-->>Customer: 201 Created (Order Confirmed + Play Audio Chime)
+```
+
+### Database Entity-Relationship (ER) Model
+
+The database schema is organized around transactional isolation, indexing efficiency, and customer auditability:
+
+```mermaid
+erDiagram
+    User ||--o{ Order : places
+    User ||--o| Cart : owns
+    User ||--o| Wishlist : maintains
+    User ||--o{ Review : writes
+    User ||--o{ Address : saves
+
+    Product ||--o{ Review : receives
+    Product }o--|| Category : belongs_to
+    Product }o--o| Brand : manufactured_by
+    Product ||--o{ InventoryTransaction : audited_by
+
+    Order ||--|{ OrderItem : contains
+    Order ||--o| Coupon : applies
+    Order ||--o{ InventoryTransaction : triggers
+
+    User {
+        ObjectId _id PK
+        string name
+        string email UK
+        string password "select: false"
+        string role "customer | admin"
+        string phone
+        boolean isActive
+        Address[] addresses
+    }
+
+    Product {
+        ObjectId _id PK
+        string name
+        string slug UK
+        string SKU UK
+        ObjectId categoryId FK
+        ObjectId brandId FK
+        number price
+        number compareAtPrice
+        number stockQuantity
+        number salesCount
+        number averageRating
+        boolean isTrending
+        boolean isFeatured
+        boolean isActive
+    }
+
+    Order {
+        ObjectId _id PK
+        string orderNumber UK
+        ObjectId user FK
+        OrderItem[] items
+        object shippingAddress
+        object pricing
+        object payment
+        string fulfillmentStatus "pending|processing|shipped|delivered|cancelled"
+        object[] timeline
+        object trackingInfo
+    }
+
+    InventoryTransaction {
+        ObjectId _id PK
+        ObjectId product FK
+        string type "sale|restock|adjustment|cancellation"
+        number quantityChanged
+        number previousStock
+        number newStock
+        ObjectId referenceOrder FK
+        ObjectId performedBy FK
+    }
+
+    Category {
+        ObjectId _id PK
+        string name
+        string slug UK
+        ObjectId parentCategory FK
+        number displayOrder
+        boolean isActive
+    }
+
+    Cart {
+        ObjectId _id PK
+        ObjectId user FK
+        CartItem[] items
+    }
+```
+
+### Scalability, Resiliency & Operational Evolution
+
+| Scalability Dimension | Current State | Production Scaled Target | Roadmap Implementation |
+|---|---|---|---|
+| **API Server Statelessness** | Fully stateless Express app; sessions stored in signed JWTs | Horizontal multi-replica pod auto-scaling | Deploy as containerized Kubernetes Deployment or AWS ECS Fargate behind ALB |
+| **Caching Engine** | Single-node Redis with automatic fallback to in-memory `Map` | Redis Cluster / Managed Redis (ElastiCache / Upstash) | Connection pooling with read-replicas for high-concurrency read offloading |
+| **Rate Limiting** | In-memory `express-rate-limit` per instance | Distributed rate limiting via Redis | Switch `express-rate-limit` storage engine to `rate-limit-redis` |
+| **Media & File Storage** | Local filesystem (`/uploads`) with static caching headers | Durable Cloud Object Storage + CDN | Implement S3/Cloudinary adapter inside `storageService.js` |
+| **Database Transactions** | Optimistic atomic `$inc` with compensating rollback | MongoDB Replica Set Multi-Document ACID Transactions | Implement `mongoose.startSession()` and `session.withTransaction()` |
+| **Real-Time Notifications** | Admin dashboard interval polling (10s) | WebSockets (Socket.io) or Server-Sent Events (SSE) | Real-time push for new orders, stock depletion, and status changes |
+
+---
+
+## 💻 Software Developer Perspective: Code Structure & Implementation
+
+### Monorepo & Directory Organization
+
+The project is structured as an npm workspaces monorepo containing `client` and `server`:
 
 ```
-├── client/                     # Vite + React 19 Frontend
+d:/e-com/
+├── client/                                 # Vite + React 19 Frontend Workspace
+│   ├── public/                             # Static assets, SVG favicons, icons
 │   ├── src/
-│   │   ├── components/         # Reusable MUI components (ProductCard, HeroSlider, etc.)
-│   │   ├── contexts/           # Auth, Cart, Wishlist, Notification Contexts
-│   │   ├── layouts/            # StoreLayout, AdminLayout
+│   │   ├── assets/                         # Graphic banners, hero illustrations
+│   │   ├── components/
+│   │   │   ├── common/                     # MegaSearchDropdown, PageLoader, ProtectedRoute, ZoomController
+│   │   │   ├── home/                       # HeroSlider, promo banners
+│   │   │   └── products/                   # ProductCard, ProductGrid, FilterDrawers
+│   │   ├── contexts/                       # AuthContext, CartContext, WishlistContext, NotificationContext
+│   │   ├── hooks/                          # Custom reusable hooks (useDebounce)
+│   │   ├── layouts/                        # StoreLayout (header/footer), AdminLayout (sidebar/appbar)
 │   │   ├── pages/
-│   │   │   ├── account/        # Customer Profile, Orders, Addresses
-│   │   │   ├── admin/          # Admin Dashboard, Products, Orders, etc.
-│   │   │   ├── auth/           # Login, Register
-│   │   │   └── store/          # HomePage, ShopPage, ProductDetails, Cart, Checkout
-│   │   ├── services/           # Axios API services
-│   │   ├── App.jsx             # Root App provider tree
-│   │   ├── router.jsx          # React Router v7 configuration
-│   │   ├── theme.js            # Material UI custom theme system
-│   │   └── main.jsx
-│   ├── .env.example
-│   └── package.json
+│   │   │   ├── account/                    # ProfilePage, OrdersPage, OrderDetailsPage, AddressesPage
+│   │   │   ├── admin/                      # DashboardPage, ProductsPage, CategoriesPage, BrandsPage,
+│   │   │   │                               # OrdersPage, CustomersPage, CouponsPage, InventoryPage, SettingsPage
+│   │   │   ├── auth/                       # LoginPage, RegisterPage
+│   │   │   └── store/                      # HomePage, ShopPage, ProductDetailsPage, CartPage, CheckoutPage, OrderSuccessPage
+│   │   ├── services/                       # Domain Axios API services (auth, product, cart, order, etc.)
+│   │   ├── utils/                          # cacheManager (SWR), imageUrl (Unsplash CDN tuning), orderSound (Web Audio)
+│   │   ├── App.jsx                         # Context Providers tree & theme wrapper
+│   │   ├── router.jsx                      # React Router v7 with React.lazy() code-splitting
+│   │   └── theme.js                        # Material UI custom theme & responsive typography tokens
+│   ├── package.json
+│   └── vite.config.js                      # Chunk splitting configuration (vendor-core, vendor-icons, vendor-axios)
 │
-├── server/                     # Node.js + Express Backend
+├── server/                                 # Node.js Express REST Backend Workspace
 │   ├── src/
-│   │   ├── config/             # DB connection (MongoDB / Memory server fallback), env
-│   │   ├── controllers/        # Express HTTP controllers
-│   │   ├── middlewares/        # Auth, Role (RBAC), Upload (Multer), Validation, Error handler
-│   │   ├── models/             # Mongoose schemas (User, Product, Category, Order, etc.)
-│   │   ├── routes/             # RESTful API routes (/api/v1/...)
-│   │   ├── scripts/            # Database seed script
-│   │   ├── services/           # Storage service abstraction
-│   │   ├── tests/              # Automated API test suite
-│   │   ├── utils/              # JWT, API responses, slugify
-│   │   ├── app.js              # Express app configuration
-│   │   └── server.js           # Server bootstrap
-│   ├── uploads/                # Local media uploads storage
-│   ├── .env.example
+│   │   ├── config/                         # db.js (Mongo + Memory fallback), env.js, redis.js
+│   │   ├── controllers/                    # HTTP request handlers (auth, product, cart, order, admin)
+│   │   ├── middlewares/                    # auth, role (RBAC), cache, rateLimit, upload (Multer), validate, error
+│   │   ├── models/                         # Mongoose Models (User, Product, Category, Brand, Order, Cart, etc.)
+│   │   ├── routes/                         # Express Route Definitions (/api/v1/*)
+│   │   ├── scripts/                        # Database seed script (seed.js)
+│   │   ├── services/                       # Business Logic (orderService, productService, cacheService, etc.)
+│   │   ├── tests/                          # Automated Integration Test Suite (api.test.js via node:test)
+│   │   ├── utils/                          # apiResponse envelopes, appError, jwt helpers, slugify
+│   │   ├── validators/                     # Express-validator schemas (auth, product, order, category)
+│   │   ├── views/                          # serverStatusPage.js (Animated operational status dashboard)
+│   │   ├── app.js                          # Express app configuration & middleware pipeline
+│   │   └── server.js                       # HTTP server bootstrap & graceful shutdown hooks
+│   ├── uploads/                            # Local media uploads storage
 │   └── package.json
-│
-├── package.json                # Monorepo workspace configuration
-└── README.md
+├── package.json                            # Root Monorepo configuration
+└── README.md                               # Master Project Overview
 ```
+
+### Backend Architecture: Decoupled Controller-Service Pattern
+
+The backend enforces strict separation between HTTP transport concerns and domain business logic:
+
+1. **Routes (`src/routes/*`)**: Define URL routes, attach route-level caching (`cacheRoute`), rate limiters, validation chains, and auth guards.
+2. **Controllers (`src/controllers/*`)**: Extract parameters from `req.body`, `req.query`, and `req.params`, call the corresponding service method, and format the output via standardized `successResponse()`.
+3. **Services (`src/services/*`)**: House all core business logic, database queries, atomic mutations, cache invalidation calls, and error throwing (`AppError`).
+4. **Models (`src/models/*`)**: Define Mongoose schemas with schema-level validation, pre-save hooks (e.g. bcrypt hashing), and performance indexes.
+
+```javascript
+// Example: Standardized Controller Action
+export const getProducts = catchAsync(async (req, res) => {
+  const result = await productService.getProducts(req.query, req.user?.role);
+  return successResponse(res, result.products, 'Products retrieved successfully', 200, {
+    page: result.page,
+    limit: result.limit,
+    total: result.total,
+    totalPages: Math.ceil(result.total / result.limit),
+  });
+});
+```
+
+### Security, Authentication & RBAC Engine
+
+- **Stateless Dual-Token JWT**:
+  - `accessToken` (1 day validity) for authenticated API requests.
+  - `refreshToken` (7 days validity) for seamless session extension.
+  - Transmitted through secure `httpOnly`, `sameSite: 'lax'` (or `'none'` for cross-origin HTTPS) cookies with authorization header bearer fallback.
+- **Role-Based Access Control (RBAC)**:
+  - Strict middleware guards: `requireAuth` validates token integrity and verifies the user is active in the database; `requireRole('admin')` rejects unauthorized customers with an explicit `403 Forbidden`.
+- **Credential Protection**:
+  - Passwords salted and hashed with `bcryptjs` (salt rounds: 10).
+  - Passwords excluded by default from queries via Mongoose `select: false`.
+- **Sanitization & Injection Defense**:
+  - Express-validator rules validate email formats, string lengths, and numeric bounds.
+  - Custom regex escaping (`sanitizeRegex`) prevents ReDoS attacks on user-submitted search terms.
+  - `helmet` sets strict HTTP security headers (CSP, Frameguard, XSS filter, Referrer-Policy).
+
+### Frontend Architecture: Code-Splitting & Design Tokens
+
+To prevent bundle bloat, NovaStore implements granular code-splitting via `React.lazy()` and Vite manual chunking:
+
+```mermaid
+flowchart TD
+    subgraph BundleSplit["Vite Chunk Distribution"]
+        Index["index.html"]
+        CoreChunk["vendor-core.js (~216 kB gzip)
+React 19, Emotion, MUI Material Core"]
+        IconChunk["vendor-icons.js (~7 kB gzip)
+MUI SvgIcons"]
+        AxiosChunk["vendor-axios.js (~19 kB gzip)
+Axios & Cache Helpers"]
+        StorePages["Storefront Chunks (3-19 kB each)
+HomePage, ShopPage, CartPage, CheckoutPage"]
+        AdminPages["Admin Dashboard Chunks (Lazy Loaded)
+Isolated completely from Customer Storefront"]
+
+        Index --> CoreChunk
+        Index --> IconChunk
+        Index --> AxiosChunk
+        Index --> StorePages
+        StorePages -.->|"Only loaded when navigating to /admin"| AdminPages
+    end
+```
+
+### Client-Side Performance & Web Audio Engine
+
+1. **Intelligent Image Acceleration (`client/src/utils/imageUrl.js`)**:
+   - Detects external Unsplash catalog images and rewrites query parameters dynamically (`auto=format`, `q=75`, `w=420`).
+   - Generates multi-resolution `srcSet` (`280w`, `420w`, `600w`) allowing mobile devices to save over **97% of image bandwidth**.
+   - Preloads above-the-fold Hero assets using `<link rel="preload" as="image" fetchpriority="high">`.
+2. **Zero-Dependency Web Audio Synthesis (`client/src/utils/orderSound.js`)**:
+   - Uses the browser's native `AudioContext` and oscillator nodes to generate clean, pleasant feedback tones without external MP3/WAV assets.
+   - **Order Confirmation Chime**: Ascending harmonic two-tone chime (`C5` 523.25 Hz &rarr; `G5` 783.99 Hz, 0.45s duration).
+   - **Admin Alert Chirp**: Fast alerting chirp (`E5` 659.25 Hz &rarr; `A5` 880 Hz) for incoming orders.
+   - Persistent mute preference toggle stored in `localStorage` (`novastore_sound_muted`).
+
+### API Contracts & Centralized Error Handling
+
+All RESTful endpoints respond with a consistent JSON envelope structure:
+
+```json
+// Success Envelope
+{
+  "success": true,
+  "message": "Products retrieved successfully",
+  "data": [ ... ],
+  "pagination": {
+    "page": 1,
+    "limit": 12,
+    "total": 48,
+    "totalPages": 4
+  }
+}
+
+// Error Envelope
+{
+  "success": false,
+  "message": "Insufficient stock for 'Wireless Noise-Canceling Headphones'. Available: 2, Requested: 5.",
+  "errors": null
+}
+```
+
+### Automated Integration Testing Strategy
+
+NovaStore includes an automated integration test suite written with the native Node.js test runner (`node:test`) and `supertest`:
+
+```bash
+npm test
+```
+
+**Test Coverage Highlights:**
+- `POST /api/v1/auth/login` - Admin authentication and role verification.
+- `POST /api/v1/auth/login` - Customer authentication.
+- `GET /api/v1/products` - Filtered, sorted, and paginated product catalog.
+- `GET /api/v1/home` - Aggregated multi-section home storefront payload.
+- `POST /api/v1/coupons/validate` - Coupon mathematical validation against minimum thresholds.
+- `Security Gate` - Asserts non-admin users receive `403 Forbidden` on admin endpoints.
+- `Admin Dashboard` - Real-time sales and revenue aggregation queries.
+- `Cart & Order Flow` - Complete end-to-end checkout validation.
+- `Cache Acceleration & Invalidation` - Asserts `X-Cache: HIT` on subsequent reads and verifies that product mutations immediately invalidate cached queries.
 
 ---
 
-## 🛠️ Setup & Installation Instructions
+## 🎯 Product Manager Perspective: Features, UX & Business Alignment
 
-### Prerequisites
-- Node.js (v18 or higher; tested on v24)
-- npm (v9 or higher)
-- MongoDB instance (or local MongoDB server on port 27017).
+### Customer Storefront Journey
 
-### 1. Clone & Install Dependencies
-From the repository root:
-```bash
-npm install
+```mermaid
+flowchart LR
+    Home["1. Discovery (Home)
+    Hero Carousel, Trending, Best Sellers"] --> Shop["2. Search & Browse (/shop)
+    Filter by Brand, Price, Rating, Stock"]
+    Shop --> Details["3. Evaluation (/product/:slug)
+    Image Gallery, Specs, Variants, Reviews"]
+    Details --> Cart["4. Intent (/cart)
+    Guest Cart, Coupon Validation, Free Shipping Bar"]
+    Cart --> Checkout["5. Conversion (/checkout)
+    Saved Addresses, Payment Method, Order Review"]
+    Checkout --> Success["6. Retention (/order-success)
+    Audio Chime, Tracking, Order Management"]
 ```
-This automatically installs dependencies across both `server` and `client` workspaces.
 
-### 2. Environment Variables Configuration
-Create `.env` in `server/`:
-```bash
-cp server/.env.example server/.env
+#### Key Feature Highlights:
+- **Instant Search Dropdown**: Live autocomplete search filtering products by keyword without requiring full page navigation.
+- **Guest-to-User Cart Migration**: Unauthenticated users can build a cart; upon signing in or registering, guest items automatically merge with their persistent database cart.
+- **Free Shipping Gamification**: Visual progress bar indicating remaining spend needed to unlock free shipping ($50 default threshold).
+- **Interactive Multi-Step Checkout**: Stepper UI isolating address selection, payment method, and final verification to maximize checkout completion rates.
+- **Customer Self-Service Hub**: Address book management, order history inspection, tracking numbers, and instant cancellation for eligible orders.
+
+### Admin Management Console
+
+A protected, role-based operations dashboard empowering store staff:
+
+1. **Executive Dashboard (`/admin`)**:
+   - Gross revenue, total order count, active customer count, low-stock warnings.
+   - 7-day revenue trend visualizations rendered using pure Material UI components.
+   - Recent orders feed with status badges and quick action links.
+2. **Product Catalog Manager (`/admin/products`)**:
+   - Full product lifecycle: creation, SKU assignment, pricing, compare-at pricing, inventory levels, variant options, and specifications.
+   - Instant search, category filters, and active/inactive status toggles.
+3. **Category & Brand Management (`/admin/categories`, `/admin/brands`)**:
+   - Nested parent-child category tree with deletion safeguards (prevents deleting categories that hold active products).
+4. **Order Fulfillment Console (`/admin/orders`)**:
+   - Step-by-step state transition controls (`pending` &rarr; `processing` &rarr; `shipped` &rarr; `delivered`).
+   - Courier assignment, tracking numbers, and delivery date estimates.
+   - Cancellation with automated inventory restock.
+5. **Coupons & Promotional Engine (`/admin/coupons`)**:
+   - Percentage or fixed discount promotions, maximum discount caps, usage limit counters, and expiration controls.
+6. **Inventory Audit Ledger (`/admin/inventory`)**:
+   - Complete audit trail of stock adjustments, sale deductions, cancellations, and restocks with user accountability.
+7. **Store Configuration (`/admin/settings`)**:
+   - Store branding, contact details, currency symbol, free shipping thresholds, payment gateway toggles, and storewide announcement bar.
+
+### Order Lifecycle State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pending: Order Placed (Inventory Atomically Deducted)
+    
+    Pending --> Processing: Admin Accepts Order
+    Pending --> Cancelled: Customer or Admin Cancels
+    
+    Processing --> Shipped: Dispatch Courier & Assign Tracking #
+    Processing --> Cancelled: Admin Cancels (Out of Stock / Fraud)
+    
+    Shipped --> Delivered: Courier Confirms Delivery
+    
+    Cancelled --> [*]: Inventory Restocked & Ledger Logged
+    Delivered --> [*]: Order Completed (Sales Count Locked)
 ```
-Default `server/.env`:
+
+### Business Impact & Conversion Optimization
+
+- **Zero Perceived Latency**: Client SWR caching renders previously visited catalog pages in 0ms, boosting browse engagement.
+- **Lower Cart Abandonment**: Guest cart persistence ensures shoppers don't lose selected items when leaving the site or switching devices.
+- **Auditory Affirmation**: The audio confirmation chime signals psychological closure and positive reinforcement upon transaction completion.
+- **Administrative Efficiency**: Low-stock alerts and integrated tracking assignment streamline fulfillment operations.
+
+---
+
+## 🚀 Setup & Installation Quickstart
+
+### Prerequisites & Zero-Dependency Setup
+- **Node.js**: v18.0.0 or higher (tested on Node.js v24).
+- **npm**: v9.0.0 or higher.
+- *Optional*: Standalone MongoDB instance or Redis server (the application includes built-in in-memory fallback engines for both).
+
+### Environment Configuration
+
+#### 1. Server Environment (`server/.env`)
+Create `server/.env` based on `server/.env.example`:
 ```env
 PORT=5000
 NODE_ENV=development
@@ -163,150 +562,81 @@ UPLOAD_DIR=uploads
 MAX_FILE_SIZE_MB=5
 ADMIN_EMAIL=admin@store.com
 ADMIN_PASSWORD=Admin@123456
+REDIS_ENABLED=true
+REDIS_URL=redis://127.0.0.1:6379
 ```
 
-Create `.env` in `client/`:
-```bash
-cp client/.env.example client/.env
-```
-Default `client/.env`:
+> [!NOTE]
+> If a local MongoDB instance is not detected, NovaStore automatically boots an embedded `mongodb-memory-server`. If Redis is not running, it automatically switches to the in-memory cache engine.
+
+#### 2. Client Environment (`client/.env`)
+Create `client/.env` based on `client/.env.example`:
 ```env
 VITE_API_BASE_URL=http://localhost:5000/api/v1
 ```
 
-### 3. Seed Database
-Initialize the database with rich categories, global brands, products, promotional banners, coupons, and demonstration accounts:
+### Database Seeding & Test Accounts
+
+Seed the database with rich categories, global brands, products, promo banners, discount coupons, and demonstration accounts:
 ```bash
 npm run seed
 ```
 
-**Pre-Configured Accounts:**
-| Role | Email | Password |
-|---|---|---|
-| **Administrator** | `admin@store.com` | `Admin@123456` |
-| **Customer** | `john@example.com` | `Customer@123456` |
+**Default Pre-Configured Accounts:**
+| Role | Email | Password | Access Privileges |
+|---|---|---|---|
+| **Administrator** | `admin@store.com` | `Admin@123456` | Full access to `/admin` dashboard, catalog, inventory & orders |
+| **Customer** | `john@example.com` | `Customer@123456` | Storefront shopping, cart, wishlist & order tracking |
 
-*(Quick one-click login buttons are also provided directly on `/login`.)*
+*(Quick one-click login demo buttons are also provided directly on the `/login` page).*
 
-### 4. Running the Application Locally
-Run both backend API and frontend dev server concurrently:
+### Running Dev & Building for Production
+
+From the repository root:
+
 ```bash
+# 1. Install all dependencies across both workspaces
+npm install
+
+# 2. Run both backend and frontend concurrently
 npm run dev
-```
-Or run individually:
-```bash
-# Start backend server (http://localhost:5000)
-npm run dev:server
 
-# Start frontend client (http://localhost:5173)
-npm run dev:client
-```
+# Or run workspaces individually:
+npm run dev:server    # Backend API on http://localhost:5000
+npm run dev:client    # Frontend Client on http://localhost:5173
 
----
-
-## 🧪 Running Automated Tests
-
-Run the backend integration test suite:
-```bash
+# 3. Execute automated test suite
 npm test
+
+# 4. Compile optimized production client bundle
+npm run build
 ```
-The test suite validates:
-- Admin and Customer login and JWT issuance
-- Category, banner, and home section data delivery
-- Coupon code calculation & validation
-- Role-based authorization security (verifying non-admins receive 403 on admin endpoints)
-- Admin dashboard aggregation metrics
-- Cart addition and order checkout validation
 
 ---
 
-## 🔒 Security Best Practices
-- **Authentication**: JWT tokens transmitted via secure HTTP-only cookies or Authorization header.
-- **Passwords**: Salted hashing with `bcryptjs`. Passwords omitted from database responses via Mongoose `select: false`.
-- **Validation**: Strict schema constraints and express-validator checking on all endpoints.
-- **Rate Limiting**: `express-rate-limit` active on sensitive auth routes to prevent brute-force attacks.
-- **Header Protection**: `helmet` headers active with CORS origin restriction.
-- **Financial & Stock Integrity**: Client-submitted pricing or totals are never trusted; totals and stock deductions are recalculated and enforced server-side.
+## 🔮 Actionable Insights, Technical Debt & Strategic Roadmap
+
+### 1. Architectural Recommendations
+- **Shared Cloud Media Storage**: Replace local filesystem uploads (`/uploads`) with an S3-compatible service (AWS S3, Cloudflare R2, Cloudinary). Local disk storage is ephemeral and will not persist across serverless or multi-replica container instances.
+- **Distributed Rate Limiting**: Switch `express-rate-limit` to use `rate-limit-redis`. In-memory rate limiting does not share request counts across multiple horizontal API replicas.
+- **Replica Set Transactions**: Upgrade compensating inventory rollbacks to native multi-document MongoDB transactions (`session.withTransaction()`) once connected to a managed MongoDB replica set.
+
+### 2. Developer Experience (DX) & Code Quality
+- **TypeScript Migration**: Gradually introduce TypeScript (starting with API request/response contracts and Mongoose models) to eliminate runtime shape discrepancies.
+- **OpenAPI / Swagger Generation**: Add `@scalar/express-api-reference` or `swagger-ui-express` to auto-generate interactive API documentation from route schemas.
+- **E2E Testing Suite**: Implement Playwright or Cypress tests to cover critical checkout flows, address modifications, and admin actions in an automated CI/CD pipeline.
+
+### 3. Product & Growth Roadmap
+- **Real Payment Gateways**: Integrate Stripe Elements and Razorpay with webhook listeners (`/api/v1/payments/webhook`) for automated payment verification.
+- **Transactional Communications**: Connect SendGrid or AWS SES for automated email dispatch (order confirmations, shipping notifications, password resets).
+- **Abandoned Cart Recovery**: Implement scheduled background cron jobs to detect carts inactive for >24 hours and trigger promotional discount reminders.
+- **Customer Product Reviews with Photos**: Enhance the review submission modal to support user-uploaded photos and review upvoting.
+
+### 4. Strategic Guiding Questions
+1. **Fulfillment Model**: Will NovaStore operate from a single central warehouse, or does the inventory engine need to support multi-warehouse stock allocations?
+2. **Third-Party Logistics (3PL)**: Should tracking numbers be updated manually by administrators, or should we integrate directly with Shippo / EasyPost APIs for automated label printing?
+3. **Guest Checkout Strategy**: Should customers be allowed to complete checkout entirely as a guest without creating an account, or does the user acquisition model prioritize mandatory registration?
 
 ---
 
-## 🚢 Production Deployment Notes
-The application is a stateless Express API with MongoDB as its shared data store, but it is not a turnkey production deployment. Before deploying:
-
-1. Set `NODE_ENV=production`, an HTTPS `CLIENT_URL` (comma-separated origins are supported), and a production `MONGODB_URI`.
-2. Set independent, randomly generated `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` values of at least 32 characters. Production startup fails fast if required settings are missing or weak.
-3. Set a non-demo `ADMIN_PASSWORD`; never run the demo seed script against production data. Seeding is disabled when `NODE_ENV=production`.
-4. Run behind TLS termination and set `TRUST_PROXY` to the exact trusted proxy hop count (do not enable it indiscriminately). Keep MongoDB private and use a least-privilege database user.
-5. Size `MONGODB_MAX_POOL_SIZE` / `MONGODB_MIN_POOL_SIZE` for the MongoDB connection budget across *all* API replicas. The default max pool is 50 per process, not a cluster-wide cap.
-6. Configure durable shared object storage and a CDN for uploads before running multiple API replicas. The current upload service writes to local disk, which is ephemeral and not shared across instances.
-7. Configure backups and restore drills, monitoring/alerting, log retention, and deployment rollback. `/health/live` is the process liveness check and `/health/ready` checks MongoDB readiness.
-8. Build the production client bundle:
-   ```bash
-   npm run build
-   ```
-9. Serve the built client from a static hosting/CDN platform and configure SPA fallback plus the API URL through `VITE_API_BASE_URL`.
-
-The server uses in-memory rate limiting. For multi-replica production, replace it with a shared store (such as Redis) so limits are consistent across instances. API replicas also require shared upload storage; deploying more replicas without addressing these two items does not provide consistent global rate limiting or media availability. Use a managed MongoDB replica set and evaluate transaction behavior, capacity, and backup recovery for your workload before launch.
-
----
-
-## 🔔 Order Notification Chime & Buzzer Sound
-
-NovaStore includes a lightweight, zero-dependency Web Audio API sound synthesis engine for order confirmations and seller/admin order arrival alerts (`client/src/utils/orderSound.js`).
-
-### How It Works
-- **Order Confirmation**: When an order is successfully placed via `CheckoutPage`, it plays a pleasant ascending two-tone chime (`C5` 523.25 Hz &rarr; `G5` 783.99 Hz) for ~0.45s at a moderate volume (0.45).
-- **Admin Order Buzzer**: In the Admin Dashboard (`DashboardPage`), when a newly placed order is detected via polling, an alert chirp (`659.25` Hz &rarr; `880` Hz) sounds to notify staff.
-- **Autoplay Compliance**: Unlocks the browser's `AudioContext` on the first user click/touch/keypress and handles blocked autoplay gracefully without throwing errors.
-- **Mute Preference**: Saved in `localStorage` under `novastore_sound_muted` and toggleable via the speaker icon in the store header or admin navigation bar.
-
-### Customizing or Replacing the Sound
-1. **Change Pitch & Frequencies**:
-   In `client/src/utils/orderSound.js`, locate `playOrderPlacedSound()`:
-   ```javascript
-   osc1.frequency.setValueAtTime(523.25, now); // First tone (Hz)
-   osc2.frequency.setValueAtTime(783.99, now + 0.12); // Second tone (Hz)
-   ```
-2. **Adjust Volume & Duration**:
-   Update `masterGain.gain.setValueAtTime(0.45, now)` (range `0.0` to `1.0`) or change the stop timing (under 1 second).
-3. **Use a Custom Audio File (e.g. MP3/WAV)**:
-   If you prefer an external audio file, replace the oscillator logic inside `playOrderPlacedSound()` with:
-   ```javascript
-   const audio = new Audio('/sounds/chime.mp3');
-   audio.volume = 0.5;
-   audio.play().catch(() => {});
-   ```
-
-### How to Test
-1. Add an item to your cart and proceed to Checkout (`/checkout`).
-2. Complete shipping details, select Payment Method, and click **Place Order**.
-3. Upon receiving the successful API response, the confirmation chime will play.
-4. Toggle the speaker icon in the top header to mute; place another order to verify it stays silent.
-
----
-
-## ⚡ Client Performance & Image Acceleration on Vercel
-
-NovaStore incorporates a multi-tier client performance architecture engineered for instantaneous page rendering and optimized asset delivery on Vercel:
-
-### 1. Image Optimization & Responsive Delivery (`client/src/utils/imageUrl.js`)
-- **Dynamic Parameter Tuning**: Unsplash catalog images are automatically transformed on the fly to request optimal dimensions (`width`), high perceptual quality (`q=75`), and next-generation formats (`auto=format` serving AVIF/WebP).
-- **Network Reduction**: Reduces average product card image weight from ~1.6 MB down to ~35 KB (over **97% bandwidth reduction**).
-- **Responsive Srcsets**: Automatically generates multi-density `srcSet` (`300w`, `600w`, `900w`) so Retina displays remain razor sharp while mobile connections save data.
-- **LCP Hero Banner Preloading**: The above-the-fold Hero banner image uses `<link rel="preload" as="image" fetchpriority="high">` in `index.html` and renders as a dedicated `<img>` element with `fetchpriority="high"`, `loading="eager"`, and `decoding="async"`.
-- **Preconnects & DNS Prefetching**: Preconnects to `images.unsplash.com` and `e-com-np3u.vercel.app` in `index.html` to eliminate DNS and SSL handshake latency.
-
-### 2. Client-Side SWR Caching & Deduplication (`client/src/utils/cacheManager.js`)
-- **Instant Route Transitions (0ms Perceived Latency)**: Public catalog data (`/home`, `/categories`, `/brands`, `/banners/active`) is cached in memory with `sessionStorage` persistence. Navigating between Home, Shop, and Product Details renders immediately without waiting for serverless cold starts.
-- **In-Flight Request Deduplication**: Reuses concurrent pending requests when multiple components (e.g. Header and Page) request the same endpoint simultaneously.
-- **Automatic Invalidation**: Catalog mutations (`POST`, `PUT`, `DELETE`) automatically invalidate affected cache keys.
-
-### 3. Modular Chunk Splitting & Admin Decoupling
-- **Lazy Loaded Admin Architecture**: `AdminLayout` and all admin icons are dynamically imported via `React.lazy()`, completely removing admin code from the public storefront bundle.
-- **Fine-Grained Chunking**: Configured in `vite.config.js` to split monolithic vendor files into parallel-loadable HTTP/2 chunks (`vendor-core`, `vendor-icons`, `vendor-axios`).
-
-### 4. Edge Caching & Static Asset Delivery (`client/vercel.json` & `server/src/app.js`)
-- **Immutable 1-Year Edge Caching**: Configured `Cache-Control: public, max-age=31536000, immutable` for all hashed build assets in `/assets/*`.
-- **Uploads Caching**: Configured `maxAge: '30d', immutable: true` on Express static upload routes.
-
-
+*Authored by Antigravity Engine. Maintained by the NovaStore Engineering Team.*

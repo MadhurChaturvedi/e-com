@@ -179,12 +179,12 @@ export const CheckoutPage = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 5 }}>
-      <Typography variant="h3" fontWeight={800} fontFamily="'Outfit', sans-serif" mb={4}>
-        Secure Checkout
+      <Typography variant="h2" fontWeight={300} textTransform="uppercase" letterSpacing="0.04em" mb={4}>
+        Checkout
       </Typography>
 
       {/* Stepper Header */}
-      <Paper elevation={0} sx={{ p: 3, mb: 4, borderRadius: 3, border: '1px solid #e2e8f0' }}>
+      <Paper elevation={0} sx={{ p: 3, mb: 4, borderRadius: 0, border: '1px solid #000000' }}>
         <Stepper activeStep={activeStep} alternativeLabel>
           {STEPS.map((label) => (
             <Step key={label}>
@@ -197,12 +197,12 @@ export const CheckoutPage = () => {
       <Grid container spacing={4}>
         {/* Main Step Content */}
         <Grid item xs={12} lg={8}>
-          <Paper elevation={0} sx={{ p: 4, borderRadius: 3.5, border: '1px solid #e2e8f0', backgroundColor: '#ffffff' }}>
+          <Paper elevation={0} sx={{ p: 4, borderRadius: 0, border: '1px solid #000000', backgroundColor: '#ffffff' }}>
             {/* Step 0: Shipping Address */}
             {activeStep === 0 && (
               <Box>
-                <Typography variant="h5" fontWeight={800} fontFamily="'Outfit', sans-serif" mb={3}>
-                  1. Shipping & Delivery Address
+                <Typography variant="h5" fontWeight={700} textTransform="uppercase" letterSpacing="0.04em" mb={3}>
+                  1. Delivery Destination
                 </Typography>
 
                 {userAddresses.length > 0 && !isAddingNewAddress ? (
@@ -217,10 +217,10 @@ export const CheckoutPage = () => {
                             onClick={() => setSelectedAddressIndex(index)}
                             sx={{
                               cursor: 'pointer',
-                              border: selectedAddressIndex === index ? '2px solid #4f46e5' : '1px solid #e2e8f0',
-                              backgroundColor: selectedAddressIndex === index ? 'rgba(79, 70, 229, 0.03)' : '#ffffff',
+                              border: selectedAddressIndex === index ? '2px solid #000000' : '1px solid #e6e6e6',
+                              backgroundColor: selectedAddressIndex === index ? '#ffffff' : '#ffffff',
                               p: 2,
-                              borderRadius: 2.5,
+                              borderRadius: 0,
                             }}
                           >
                             <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
@@ -228,7 +228,7 @@ export const CheckoutPage = () => {
                                 {addr.fullName}
                               </Typography>
                               {addr.isDefault && (
-                                <Chip label="Default" size="small" color="primary" sx={{ height: 20, fontSize: '0.65rem' }} />
+                                <Chip label="Default" size="small" sx={{ height: 20, fontSize: '0.65rem', borderRadius: 0, backgroundColor: '#000000', color: '#ffffff' }} />
                               )}
                             </Stack>
                             <Typography variant="body2" color="text.secondary">
@@ -332,7 +332,7 @@ export const CheckoutPage = () => {
                 )}
 
                 <Stack direction="row" justifyContent="flex-end" mt={4}>
-                  <Button variant="contained" size="large" onClick={handleNextStep} sx={{ px: 4, borderRadius: 2.5 }}>
+                  <Button variant="contained" size="large" onClick={handleNextStep} sx={{ px: 4, borderRadius: 0, backgroundColor: '#000000', color: '#ffffff' }}>
                     Continue to Payment
                   </Button>
                 </Stack>
@@ -342,11 +342,11 @@ export const CheckoutPage = () => {
             {/* Step 1: Payment Method */}
             {activeStep === 1 && (
               <Box>
-                <Typography variant="h5" fontWeight={800} fontFamily="'Outfit', sans-serif" mb={3}>
+                <Typography variant="h5" fontWeight={700} textTransform="uppercase" letterSpacing="0.04em" mb={3}>
                   2. Payment Method
                 </Typography>
 
-                <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+                <Alert severity="info" sx={{ mb: 3, borderRadius: 0, backgroundColor: '#e6e6e6', color: '#000000', border: '1px solid #000000' }}>
                   <strong>Development Mode Active:</strong> Cash on Delivery (COD) and Online Card payments are enabled for demo transactions with instant signature validation.
                 </Alert>
 
@@ -356,25 +356,25 @@ export const CheckoutPage = () => {
                     sx={{
                       mb: 2,
                       p: 2,
-                      borderRadius: 2.5,
-                      border: paymentMethod === 'cod' ? '2px solid #4f46e5' : '1px solid #e2e8f0',
+                      borderRadius: 0,
+                      border: paymentMethod === 'cod' ? '2px solid #000000' : '1px solid #e6e6e6',
                       cursor: 'pointer',
                     }}
                     onClick={() => setPaymentMethod('cod')}
                   >
                     <FormControlLabel
                       value="cod"
-                      control={<Radio />}
+                      control={<Radio sx={{ color: '#000000', '&.Mui-checked': { color: '#000000' } }} />}
                       label={
                         <Box sx={{ ml: 1 }}>
                           <Stack direction="row" spacing={1} alignItems="center">
-                            <LocalAtmIcon color="primary" />
+                            <LocalAtmIcon sx={{ color: '#000000' }} />
                             <Typography variant="subtitle1" fontWeight={700}>
                               Cash on Delivery (COD)
                             </Typography>
                           </Stack>
                           <Typography variant="caption" color="text.secondary">
-                            Pay with cash or card upon package delivery at your doorstep.
+                            Pay upon package delivery at your doorstep.
                           </Typography>
                         </Box>
                       }
@@ -386,25 +386,25 @@ export const CheckoutPage = () => {
                     sx={{
                       mb: 2,
                       p: 2,
-                      borderRadius: 2.5,
-                      border: paymentMethod === 'card' ? '2px solid #4f46e5' : '1px solid #e2e8f0',
+                      borderRadius: 0,
+                      border: paymentMethod === 'card' ? '2px solid #000000' : '1px solid #e6e6e6',
                       cursor: 'pointer',
                     }}
                     onClick={() => setPaymentMethod('card')}
                   >
                     <FormControlLabel
                       value="card"
-                      control={<Radio />}
+                      control={<Radio sx={{ color: '#000000', '&.Mui-checked': { color: '#000000' } }} />}
                       label={
                         <Box sx={{ ml: 1 }}>
                           <Stack direction="row" spacing={1} alignItems="center">
-                            <CreditCardIcon color="secondary" />
+                            <CreditCardIcon sx={{ color: '#000000' }} />
                             <Typography variant="subtitle1" fontWeight={700}>
-                              Credit / Debit Card (Stripe Gateway Test)
+                              Credit / Debit Card (Simulated Gateway)
                             </Typography>
                           </Stack>
                           <Typography variant="caption" color="text.secondary">
-                            Simulated secure 256-bit SSL encrypted checkout test transaction.
+                            Simulated secure 256-bit encrypted checkout transaction.
                           </Typography>
                         </Box>
                       }
@@ -413,10 +413,10 @@ export const CheckoutPage = () => {
                 </RadioGroup>
 
                 <Stack direction="row" justifyContent="space-between" mt={4}>
-                  <Button onClick={handleBackStep}>
+                  <Button onClick={handleBackStep} sx={{ borderRadius: 0, color: '#000000' }}>
                     &larr; Back to Shipping
                   </Button>
-                  <Button variant="contained" size="large" onClick={handleNextStep} sx={{ px: 4, borderRadius: 2.5 }}>
+                  <Button variant="contained" size="large" onClick={handleNextStep} sx={{ px: 4, borderRadius: 0, backgroundColor: '#000000', color: '#ffffff' }}>
                     Review Order
                   </Button>
                 </Stack>
@@ -426,13 +426,13 @@ export const CheckoutPage = () => {
             {/* Step 2: Review & Place Order */}
             {activeStep === 2 && (
               <Box>
-                <Typography variant="h5" fontWeight={800} fontFamily="'Outfit', sans-serif" mb={3}>
+                <Typography variant="h5" fontWeight={700} textTransform="uppercase" letterSpacing="0.04em" mb={3}>
                   3. Review & Confirm Order
                 </Typography>
 
                 {/* Delivery address summary */}
-                <Box sx={{ p: 2.5, backgroundColor: '#f8fafc', borderRadius: 3, mb: 3 }}>
-                  <Typography variant="subtitle2" fontWeight={700} color="primary.main" mb={0.5}>
+                <Box sx={{ p: 2.5, backgroundColor: '#e6e6e6', borderRadius: 0, mb: 3 }}>
+                  <Typography variant="subtitle2" fontWeight={700} color="#000000" textTransform="uppercase" mb={0.5}>
                     Delivering To:
                   </Typography>
                   <Typography variant="body1" fontWeight={700}>
@@ -450,8 +450,8 @@ export const CheckoutPage = () => {
                 </Box>
 
                 {/* Payment method summary */}
-                <Box sx={{ p: 2.5, backgroundColor: '#f8fafc', borderRadius: 3, mb: 3 }}>
-                  <Typography variant="subtitle2" fontWeight={700} color="primary.main" mb={0.5}>
+                <Box sx={{ p: 2.5, backgroundColor: '#e6e6e6', borderRadius: 0, mb: 3 }}>
+                  <Typography variant="subtitle2" fontWeight={700} color="#000000" textTransform="uppercase" mb={0.5}>
                     Payment:
                   </Typography>
                   <Typography variant="body2" fontWeight={600}>
@@ -460,7 +460,7 @@ export const CheckoutPage = () => {
                 </Box>
 
                 {/* Items snapshot */}
-                <Typography variant="subtitle2" fontWeight={700} mb={1.5}>
+                <Typography variant="subtitle2" fontWeight={700} textTransform="uppercase" mb={1.5}>
                   Ordered Items ({items.length}):
                 </Typography>
                 <Stack spacing={2} mb={3}>
@@ -485,7 +485,7 @@ export const CheckoutPage = () => {
                             alt={productName}
                             loading="lazy"
                             decoding="async"
-                            sx={{ width: 48, height: 48, borderRadius: 1.5, objectFit: 'cover', flexShrink: 0 }}
+                            sx={{ width: 48, height: 64, borderRadius: 0, backgroundColor: '#e6e6e6', objectFit: 'cover', flexShrink: 0 }}
                           />
 
                           <Box>
@@ -508,16 +508,25 @@ export const CheckoutPage = () => {
                 <Divider sx={{ my: 3 }} />
 
                 <Stack direction="row" justifyContent="space-between" mt={4}>
-                  <Button onClick={handleBackStep} disabled={submitting}>
+                  <Button onClick={handleBackStep} disabled={submitting} sx={{ borderRadius: 0, color: '#000000' }}>
                     &larr; Back to Payment
                   </Button>
                   <Button
                     variant="contained"
                     size="large"
-                    color="primary"
                     disabled={submitting}
                     onClick={handlePlaceOrder}
-                    sx={{ px: 5, py: 1.5, borderRadius: 2.5, fontSize: '1rem', fontWeight: 800 }}
+                    sx={{
+                      px: 5,
+                      py: 1.5,
+                      borderRadius: 0,
+                      fontSize: '0.875rem',
+                      letterSpacing: '0.06em',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      backgroundColor: '#000000',
+                      color: '#ffffff',
+                    }}
                   >
                     {submitting ? <CircularProgress size={24} color="inherit" /> : `Place Order &bull; $${finalTotal.toFixed(2)}`}
                   </Button>
@@ -529,8 +538,8 @@ export const CheckoutPage = () => {
 
         {/* Right: Sticky Summary Box */}
         <Grid item xs={12} lg={4}>
-          <Paper elevation={0} sx={{ p: 3.5, borderRadius: 3.5, border: '1px solid #e2e8f0', backgroundColor: '#ffffff', position: 'sticky', top: 100 }}>
-            <Typography variant="h6" fontWeight={800} fontFamily="'Outfit', sans-serif" mb={2}>
+          <Paper elevation={0} sx={{ p: 3.5, borderRadius: 0, border: '1px solid #000000', backgroundColor: '#ffffff', position: 'sticky', top: 100 }}>
+            <Typography variant="h6" fontWeight={700} textTransform="uppercase" letterSpacing="0.04em" mb={2}>
               Order Summary
             </Typography>
 
@@ -541,8 +550,8 @@ export const CheckoutPage = () => {
               </Stack>
               {appliedCoupon && (
                 <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" color="success.main">Coupon ({appliedCoupon.code})</Typography>
-                  <Typography variant="body2" fontWeight={700} color="success.main">-${discountAmount.toFixed(2)}</Typography>
+                  <Typography variant="body2" color="text.secondary">Coupon ({appliedCoupon.code})</Typography>
+                  <Typography variant="body2" fontWeight={700}>-${discountAmount.toFixed(2)}</Typography>
                 </Stack>
               )}
               <Stack direction="row" justifyContent="space-between">
@@ -554,14 +563,14 @@ export const CheckoutPage = () => {
             <Divider sx={{ mb: 2.5 }} />
 
             <Stack direction="row" justifyContent="space-between" alignItems="baseline" mb={3}>
-              <Typography variant="subtitle1" fontWeight={800}>Total To Pay</Typography>
-              <Typography variant="h4" fontWeight={900} color="primary.main">${finalTotal.toFixed(2)}</Typography>
+              <Typography variant="subtitle1" fontWeight={700} textTransform="uppercase">Total To Pay</Typography>
+              <Typography variant="h4" fontWeight={900} color="#000000">${finalTotal.toFixed(2)}</Typography>
             </Stack>
 
             <Typography variant="caption" color="text.secondary" display="block">
-              &bull; 100% Secure Checkout SSL Encrypted
+              &bull; Verified inventory reservation on placement
               <br />
-              &bull; Inventory verified automatically during submission
+              &bull; 30-day effortless returns policy
             </Typography>
           </Paper>
         </Grid>

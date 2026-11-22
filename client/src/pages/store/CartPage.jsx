@@ -95,30 +95,30 @@ export const CartPage = () => {
           sx={{
             width: 80,
             height: 80,
-            borderRadius: '50%',
-            backgroundColor: 'rgba(79, 70, 229, 0.08)',
+            backgroundColor: '#e6e6e6',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             mx: 'auto',
             mb: 3,
-            color: 'primary.main',
+            color: '#000000',
+            borderRadius: 0,
           }}
         >
           <ShoppingBagOutlinedIcon sx={{ fontSize: 40 }} />
         </Box>
-        <Typography variant="h4" fontWeight={800} fontFamily="'Outfit', sans-serif" mb={1}>
-          Your Cart is Empty
+        <Typography variant="h3" fontWeight={300} textTransform="uppercase" letterSpacing="0.04em" mb={1}>
+          Your Bag is Empty
         </Typography>
         <Typography variant="body1" color="text.secondary" mb={4}>
-          Looks like you haven't added anything to your cart yet. Discover items from our collection!
+          Discover new season styles and essentials from our collections.
         </Typography>
         <Button
           component={RouterLink}
           to="/shop"
           variant="contained"
           size="large"
-          sx={{ borderRadius: 2.5, px: 4 }}
+          sx={{ borderRadius: 0, px: 4, backgroundColor: '#000000', color: '#ffffff' }}
         >
           Start Shopping
         </Button>
@@ -128,8 +128,8 @@ export const CartPage = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 5 }}>
-      <Typography variant="h3" fontWeight={800} fontFamily="'Outfit', sans-serif" mb={4}>
-        Shopping Cart ({cart.itemCount} {cart.itemCount === 1 ? 'item' : 'items'})
+      <Typography variant="h2" fontWeight={300} textTransform="uppercase" letterSpacing="0.04em" mb={4}>
+        Shopping Bag ({cart.itemCount} {cart.itemCount === 1 ? 'item' : 'items'})
       </Typography>
 
       <Grid container spacing={4}>
@@ -139,20 +139,20 @@ export const CartPage = () => {
             component={Paper}
             elevation={0}
             sx={{
-              border: '1px solid #e2e8f0',
-              borderRadius: 3.5,
+              border: '1px solid #000000',
+              borderRadius: 0,
               overflow: 'hidden',
               backgroundColor: '#ffffff',
             }}
           >
             <Table>
-              <TableHead sx={{ backgroundColor: '#f8fafc' }}>
+              <TableHead sx={{ backgroundColor: '#e6e6e6' }}>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Product</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>Price</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>Quantity</TableCell>
-                  <TableCell align="right" sx={{ fontWeight: 700 }}>Total</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>Action</TableCell>
+                  <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.8125rem' }}>Product</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.8125rem' }}>Price</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.8125rem' }}>Quantity</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.8125rem' }}>Total</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.8125rem' }}>Action</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -182,10 +182,10 @@ export const CartPage = () => {
                             decoding="async"
                             sx={{
                               width: 64,
-                              height: 64,
-                              borderRadius: 2,
+                              height: 85,
+                              borderRadius: 0,
+                              backgroundColor: '#e6e6e6',
                               objectFit: 'cover',
-                              border: '1px solid #e2e8f0',
                               flexShrink: 0,
                             }}
                           />
@@ -195,11 +195,11 @@ export const CartPage = () => {
                               component={RouterLink}
                               to={`/product/${p.slug || p._id || item._id}`}
                               variant="subtitle2"
-                              fontWeight={700}
+                              fontWeight={600}
                               sx={{
-                                color: 'text.primary',
+                                color: '#000000',
                                 textDecoration: 'none',
-                                '&:hover': { color: 'primary.main' },
+                                '&:hover': { color: '#737373' },
                               }}
                             >
                               {productName}
@@ -210,7 +210,7 @@ export const CartPage = () => {
                               </Typography>
                             )}
                             {!isAvailable && (
-                              <Chip label="Unavailable" color="error" size="small" sx={{ height: 18, fontSize: '0.65rem', mt: 0.5 }} />
+                              <Chip label="Unavailable" color="error" size="small" sx={{ height: 18, fontSize: '0.65rem', mt: 0.5, borderRadius: 0 }} />
                             )}
                           </Box>
                         </Stack>
@@ -218,7 +218,7 @@ export const CartPage = () => {
 
                       {/* Unit Price */}
                       <TableCell align="center">
-                        <Typography variant="body2" fontWeight={600}>
+                        <Typography variant="body2" fontWeight={400}>
                           ${unitPrice.toFixed(2)}
                         </Typography>
                       </TableCell>
@@ -229,24 +229,26 @@ export const CartPage = () => {
                           sx={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: 2,
+                            border: '1px solid #000000',
+                            borderRadius: 0,
                             p: 0.25,
                           }}
                         >
                           <IconButton
                             size="small"
                             onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                            sx={{ borderRadius: 0 }}
                           >
                             <RemoveIcon fontSize="small" />
                           </IconButton>
-                          <Typography sx={{ px: 1.5, fontWeight: 700, fontSize: '0.875rem' }}>
+                          <Typography sx={{ px: 1.5, fontWeight: 600, fontSize: '0.875rem' }}>
                             {item.quantity}
                           </Typography>
                           <IconButton
                             size="small"
                             disabled={p.stockQuantity !== undefined && item.quantity >= p.stockQuantity}
                             onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                            sx={{ borderRadius: 0 }}
                           >
                             <AddIcon fontSize="small" />
                           </IconButton>
@@ -255,7 +257,7 @@ export const CartPage = () => {
 
                       {/* Line Item Total */}
                       <TableCell align="right">
-                        <Typography variant="subtitle2" fontWeight={800}>
+                        <Typography variant="subtitle2" fontWeight={600}>
                           ${((p.price || item.price || 0) * item.quantity).toFixed(2)}
                         </Typography>
                       </TableCell>
@@ -266,6 +268,7 @@ export const CartPage = () => {
                           color="error"
                           size="small"
                           onClick={() => removeFromCart(item._id)}
+                          sx={{ borderRadius: 0, color: '#737373', '&:hover': { color: '#eb0010' } }}
                         >
                           <DeleteOutlineIcon fontSize="small" />
                         </IconButton>
@@ -278,10 +281,10 @@ export const CartPage = () => {
           </TableContainer>
 
           <Stack direction="row" justifyContent="space-between" alignItems="center" mt={3}>
-            <Button component={RouterLink} to="/shop" color="inherit">
+            <Button component={RouterLink} to="/shop" color="inherit" sx={{ textTransform: 'uppercase', fontSize: '0.8125rem' }}>
               &larr; Continue Shopping
             </Button>
-            <Button color="error" onClick={clearCart}>
+            <Button color="error" onClick={clearCart} sx={{ textTransform: 'uppercase', fontSize: '0.8125rem', color: '#eb0010' }}>
               Clear Cart
             </Button>
           </Stack>
@@ -293,8 +296,8 @@ export const CartPage = () => {
             elevation={0}
             sx={{
               p: 3.5,
-              borderRadius: 3.5,
-              border: '1px solid #e2e8f0',
+              borderRadius: 0,
+              border: '1px solid #000000',
               backgroundColor: '#ffffff',
               position: 'sticky',
               top: 100,
@@ -349,7 +352,7 @@ export const CartPage = () => {
                     variant="outlined"
                     disabled={validatingCoupon}
                     onClick={handleApplyCoupon}
-                    sx={{ borderRadius: 2 }}
+                    sx={{ borderRadius: 0, borderColor: '#000000', color: '#000000' }}
                   >
                     Apply
                   </Button>
@@ -380,12 +383,12 @@ export const CartPage = () => {
               <Stack direction="row" justifyContent="space-between">
                 <Typography variant="body2" color="text.secondary">Estimated Shipping</Typography>
                 <Typography variant="body2" fontWeight={700}>
-                  {shippingFee === 0 ? <Box component="span" sx={{ color: 'success.main' }}>FREE</Box> : `$${shippingFee.toFixed(2)}`}
+                  {shippingFee === 0 ? <Box component="span" sx={{ color: '#000000' }}>FREE</Box> : `$${shippingFee.toFixed(2)}`}
                 </Typography>
               </Stack>
 
               {subtotal < 50 && (
-                <Typography variant="caption" color="primary.main" fontWeight={600}>
+                <Typography variant="caption" color="text.secondary" fontWeight={500}>
                   Add ${(50 - subtotal).toFixed(2)} more to qualify for Free Shipping!
                 </Typography>
               )}
@@ -396,7 +399,7 @@ export const CartPage = () => {
             {/* Final Total */}
             <Stack direction="row" justifyContent="space-between" alignItems="baseline" mb={3.5}>
               <Typography variant="h6" fontWeight={800}>Total Amount</Typography>
-              <Typography variant="h4" fontWeight={900} color="primary.main">
+              <Typography variant="h4" fontWeight={900} color="#000000">
                 ${finalTotal.toFixed(2)}
               </Typography>
             </Stack>
@@ -408,7 +411,17 @@ export const CartPage = () => {
               size="large"
               endIcon={<ArrowForwardIcon />}
               onClick={handleProceedToCheckout}
-              sx={{ py: 1.5, borderRadius: 2.5, fontSize: '1rem', fontWeight: 700 }}
+              sx={{
+                py: 1.5,
+                borderRadius: 0,
+                fontSize: '0.875rem',
+                letterSpacing: '0.06em',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                backgroundColor: '#000000',
+                color: '#ffffff',
+                '&:hover': { backgroundColor: '#262626' },
+              }}
             >
               {isAuthenticated ? 'Proceed to Checkout' : 'Sign In & Checkout'}
             </Button>

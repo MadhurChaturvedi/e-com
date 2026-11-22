@@ -225,12 +225,12 @@ export const ProductDetailsPage = () => {
             <Paper
               elevation={0}
               sx={{
-                borderRadius: 4,
+                borderRadius: 0,
                 overflow: 'hidden',
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
+                backgroundColor: '#e6e6e6',
+                border: 'none',
                 position: 'relative',
-                pt: '85%',
+                pt: '120%',
                 mb: 2,
               }}
             >
@@ -247,29 +247,29 @@ export const ProductDetailsPage = () => {
                   left: 0,
                   width: '100%',
                   height: '100%',
-                  objectFit: 'contain',
-                  p: 2,
+                  objectFit: 'cover',
+                  p: 0,
                 }}
               />
             </Paper>
 
             {/* Thumbnail Navigation */}
             {images.length > 1 && (
-              <Stack direction="row" spacing={2} sx={{ overflowX: 'auto', pb: 1 }}>
+              <Stack direction="row" spacing={1.5} sx={{ overflowX: 'auto', pb: 1 }}>
                 {images.map((img, idx) => (
                   <Box
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
                     sx={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: 2.5,
+                      width: 72,
+                      height: 96,
+                      borderRadius: 0,
                       overflow: 'hidden',
                       cursor: 'pointer',
-                      border: idx === selectedImage ? '2px solid #4f46e5' : '1px solid #e2e8f0',
-                      backgroundColor: '#ffffff',
+                      border: idx === selectedImage ? '1.5px solid #000000' : '1px solid #e6e6e6',
+                      backgroundColor: '#e6e6e6',
                       flexShrink: 0,
-                      p: 0.5,
+                      p: 0,
                     }}
                   >
                     <Box
@@ -278,7 +278,7 @@ export const ProductDetailsPage = () => {
                       alt={`Thumbnail ${idx}`}
                       loading="lazy"
                       decoding="async"
-                      sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   </Box>
                 ))}
@@ -320,9 +320,9 @@ export const ProductDetailsPage = () => {
             <Box
               sx={{
                 p: 2.5,
-                borderRadius: 3,
+                borderRadius: 0,
                 backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
+                border: '1px solid #000000',
                 mb: 3,
               }}
             >
@@ -335,25 +335,25 @@ export const ProductDetailsPage = () => {
                     <Typography variant="h5" color="text.secondary" sx={{ textDecoration: 'line-through' }}>
                       ${product.compareAtPrice?.toFixed(2)}
                     </Typography>
-                    <Chip label={`Save ${discountPercent}%`} color="error" size="small" sx={{ fontWeight: 800 }} />
+                    <Chip label={`Save ${discountPercent}%`} size="small" sx={{ fontWeight: 700, borderRadius: 0, backgroundColor: '#eb0010', color: '#ffffff', border: 'none' }} />
                   </>
                 )}
               </Stack>
 
               <Typography variant="caption" color="text.secondary" display="block" mt={1}>
-                Taxes included. Free standard shipping applies on all eligible purchases over $50.
+                Taxes included. Free standard delivery applies on all qualifying purchases over $50.
               </Typography>
             </Box>
 
             {/* Description */}
-            <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 1.8, mb: 3 }}>
+            <Typography variant="body1" sx={{ color: '#000000', lineHeight: 1.6, mb: 3 }}>
               {product.description}
             </Typography>
 
             {/* Available Variants */}
             {product.variants && product.variants.length > 0 && (
               <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" fontWeight={700} mb={1}>
+                <Typography variant="subtitle2" fontWeight={700} textTransform="uppercase" mb={1}>
                   Select Option:
                 </Typography>
                 <Stack direction="row" spacing={1.5} flexWrap="wrap">
@@ -366,7 +366,15 @@ export const ProductDetailsPage = () => {
                         onClick={() => setSelectedVariant(v)}
                         color={isSelected ? 'primary' : 'default'}
                         variant={isSelected ? 'filled' : 'outlined'}
-                        sx={{ fontWeight: 600, py: 2, px: 1, borderRadius: 2 }}
+                        sx={{
+                          fontWeight: 500,
+                          py: 2,
+                          px: 1,
+                          borderRadius: 0,
+                          border: '1px solid #000000',
+                          backgroundColor: isSelected ? '#000000' : '#ffffff',
+                          color: isSelected ? '#ffffff' : '#000000',
+                        }}
                       />
                     );
                   })}
@@ -377,14 +385,13 @@ export const ProductDetailsPage = () => {
             {/* Stock Availability */}
             <Box sx={{ mb: 3 }}>
               {isOutOfStock ? (
-                <Chip label="Currently Out of Stock" color="error" sx={{ fontWeight: 700 }} />
+                <Chip label="Currently Out of Stock" sx={{ fontWeight: 700, borderRadius: 0, backgroundColor: '#e6e6e6', color: '#737373', border: '1px solid #737373' }} />
               ) : (
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Chip
-                    label={product.stockQuantity <= 5 ? `Low Stock: Only ${product.stockQuantity} left` : 'In Stock & Ready to Ship'}
-                    color={product.stockQuantity <= 5 ? 'warning' : 'success'}
+                    label={product.stockQuantity <= 5 ? `Low Stock: Only ${product.stockQuantity} left` : 'In Stock & Ready to Dispatch'}
                     size="small"
-                    sx={{ fontWeight: 700 }}
+                    sx={{ fontWeight: 600, borderRadius: 0, border: '1px solid #000000', backgroundColor: '#ffffff', color: '#000000' }}
                   />
                   <Typography variant="caption" color="text.secondary">
                     Ships within 24 hours
@@ -400,8 +407,8 @@ export const ProductDetailsPage = () => {
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: 2.5,
+                  border: '1px solid #000000',
+                  borderRadius: 0,
                   p: 0.5,
                   backgroundColor: '#ffffff',
                 }}
@@ -410,6 +417,7 @@ export const ProductDetailsPage = () => {
                   size="small"
                   disabled={quantity <= 1 || isOutOfStock}
                   onClick={() => handleQuantityChange(-1)}
+                  sx={{ borderRadius: 0 }}
                 >
                   <RemoveIcon fontSize="small" />
                 </IconButton>
@@ -420,6 +428,7 @@ export const ProductDetailsPage = () => {
                   size="small"
                   disabled={quantity >= product.stockQuantity || isOutOfStock}
                   onClick={() => handleQuantityChange(1)}
+                  sx={{ borderRadius: 0 }}
                 >
                   <AddIcon fontSize="small" />
                 </IconButton>
@@ -433,38 +442,53 @@ export const ProductDetailsPage = () => {
                 disabled={isOutOfStock}
                 onClick={handleAddToCart}
                 startIcon={<ShoppingBagOutlinedIcon />}
-                sx={{ py: 1.5, borderRadius: 2.5, fontSize: '1rem' }}
+                sx={{
+                  py: 1.5,
+                  borderRadius: 0,
+                  backgroundColor: '#000000',
+                  color: '#ffffff',
+                  fontSize: '0.875rem',
+                  letterSpacing: '0.06em',
+                  '&:hover': { backgroundColor: '#262626' },
+                }}
               >
-                {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                {isOutOfStock ? 'Out of Stock' : 'Add to Bag'}
               </Button>
 
               {/* Buy Now Button */}
               <Button
                 fullWidth
                 variant="outlined"
-                color="secondary"
                 size="large"
                 disabled={isOutOfStock}
                 onClick={handleBuyNow}
                 startIcon={<FlashOnIcon />}
-                sx={{ py: 1.5, borderRadius: 2.5, fontSize: '1rem' }}
+                sx={{
+                  py: 1.5,
+                  borderRadius: 0,
+                  borderColor: '#000000',
+                  color: '#000000',
+                  fontSize: '0.875rem',
+                  letterSpacing: '0.06em',
+                  '&:hover': { backgroundColor: '#000000', color: '#ffffff' },
+                }}
               >
                 Buy Now
               </Button>
 
-              {/* Wishlist Button */}
+              {/* Wishlist Button: Circular as specified in DESIGN.md */}
               <IconButton
                 onClick={() => toggleWishlist(product)}
                 sx={{
                   p: 1.5,
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 2.5,
-                  color: inWishlist ? 'error.main' : 'text.secondary',
+                  border: '1px solid #000000',
+                  borderRadius: '50%',
+                  color: inWishlist ? '#eb0010' : '#000000',
                   backgroundColor: '#ffffff',
-                  '&:hover': { backgroundColor: '#f8fafc' },
+                  '&:hover': { backgroundColor: '#e6e6e6' },
                 }}
               >
-                {inWishlist ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                {inWishlist ? <FavoriteIcon sx={{ color: '#eb0010' }} /> : <FavoriteBorderIcon />}
               </IconButton>
             </Stack>
 
@@ -473,9 +497,9 @@ export const ProductDetailsPage = () => {
               elevation={0}
               sx={{
                 p: 2.5,
-                borderRadius: 3,
-                border: '1px solid #e2e8f0',
-                backgroundColor: '#f8fafc',
+                borderRadius: 0,
+                border: 'none',
+                backgroundColor: '#e6e6e6',
                 mb: 4,
               }}
             >
@@ -498,18 +522,18 @@ export const ProductDetailsPage = () => {
             {/* Specifications Table */}
             {product.specifications && product.specifications.length > 0 && (
               <Box sx={{ mb: 4 }}>
-                <Typography variant="h6" fontWeight={800} mb={2}>
+                <Typography variant="h6" fontWeight={700} textTransform="uppercase" mb={2}>
                   Technical Specifications
                 </Typography>
-                <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #e2e8f0', borderRadius: 3 }}>
+                <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #000000', borderRadius: 0 }}>
                   <Table size="small">
                     <TableBody>
                       {product.specifications.map((spec, i) => (
                         <TableRow key={i} sx={{ '&:nth-of-type(odd)': { backgroundColor: '#f8fafc' } }}>
-                          <TableCell sx={{ fontWeight: 700, width: '40%', color: 'text.secondary' }}>
+                          <TableCell sx={{ fontWeight: 600, width: '40%', color: '#000000' }}>
                             {spec.name}
                           </TableCell>
-                          <TableCell sx={{ fontWeight: 500 }}>
+                          <TableCell sx={{ fontWeight: 400 }}>
                             {spec.value}
                           </TableCell>
                         </TableRow>
@@ -533,7 +557,7 @@ export const ProductDetailsPage = () => {
           mb={4}
         >
           <Box>
-            <Typography variant="h4" fontWeight={800} fontFamily="'Outfit', sans-serif">
+            <Typography variant="h4" fontWeight={400} textTransform="uppercase" letterSpacing="0.04em">
               Customer Reviews ({reviews.length})
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -552,14 +576,15 @@ export const ProductDetailsPage = () => {
                 setReviewOpen(true);
               }
             }}
+            sx={{ borderRadius: 0, backgroundColor: '#000000', color: '#ffffff' }}
           >
             Write a Review
           </Button>
         </Stack>
 
         {reviews.length === 0 ? (
-          <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 3, border: '1px dashed #cbd5e1' }}>
-            <Typography variant="body1" fontWeight={600} color="text.secondary">
+          <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 0, border: '1px solid #e6e6e6' }}>
+            <Typography variant="body1" fontWeight={400} color="text.secondary">
               No reviews yet for this product. Be the first to share your thoughts!
             </Typography>
           </Paper>
@@ -571,8 +596,8 @@ export const ProductDetailsPage = () => {
                   elevation={0}
                   sx={{
                     p: 3,
-                    borderRadius: 3,
-                    border: '1px solid #e2e8f0',
+                    borderRadius: 0,
+                    border: '1px solid #000000',
                     backgroundColor: '#ffffff',
                     height: '100%',
                   }}
