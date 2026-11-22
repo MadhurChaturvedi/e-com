@@ -39,19 +39,19 @@ export const OrderSuccessPage = () => {
         elevation={0}
         sx={{
           p: { xs: 3, sm: 6 },
-          borderRadius: 4,
-          border: '1px solid #e2e8f0',
+          borderRadius: 0,
+          border: '1px solid #000000',
           textAlign: 'center',
           backgroundColor: '#ffffff',
         }}
       >
         <Box
           sx={{
-            width: 88,
-            height: 88,
-            borderRadius: '50%',
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            color: 'success.main',
+            width: 80,
+            height: 80,
+            borderRadius: 0,
+            backgroundColor: '#e6e6e6',
+            color: '#000000',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -59,11 +59,11 @@ export const OrderSuccessPage = () => {
             mb: 3,
           }}
         >
-          <CheckCircleOutlineIcon sx={{ fontSize: 56 }} />
+          <CheckCircleOutlineIcon sx={{ fontSize: 48, color: '#000000' }} />
         </Box>
 
-        <Typography variant="h3" fontWeight={800} fontFamily="'Outfit', sans-serif" mb={1.5}>
-          Order Confirmed!
+        <Typography variant="h2" fontWeight={300} textTransform="uppercase" letterSpacing="0.04em" mb={1.5}>
+          Order Confirmed
         </Typography>
         <Typography variant="body1" color="text.secondary" mb={4} maxWidth={500} mx="auto">
           Thank you for your purchase. We have received your order and our fulfillment team is preparing it for shipment.
@@ -73,8 +73,8 @@ export const OrderSuccessPage = () => {
           <Box
             sx={{
               p: 3,
-              backgroundColor: '#f8fafc',
-              borderRadius: 3,
+              backgroundColor: '#e6e6e6',
+              borderRadius: 0,
               textAlign: 'left',
               maxWidth: 580,
               mx: 'auto',
@@ -82,17 +82,17 @@ export const OrderSuccessPage = () => {
             }}
           >
             <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="caption" color="text.secondary" textTransform="uppercase" fontWeight={700}>
+              <Typography variant="caption" color="#000000" textTransform="uppercase" fontWeight={700}>
                 Order Identifier
               </Typography>
-              <Chip label={order.fulfillmentStatus?.toUpperCase() || 'PENDING'} color="primary" size="small" sx={{ fontWeight: 800 }} />
+              <Chip label={order.fulfillmentStatus?.toUpperCase() || 'PENDING'} size="small" sx={{ fontWeight: 600, borderRadius: 0, backgroundColor: '#000000', color: '#ffffff' }} />
             </Stack>
 
-            <Typography variant="h5" fontWeight={800} color="primary.main" mb={2}>
+            <Typography variant="h5" fontWeight={700} color="#000000" mb={2}>
               {order.orderNumber}
             </Typography>
 
-            <Divider sx={{ mb: 2 }} />
+            <Divider sx={{ mb: 2, borderColor: '#d4d4d4' }} />
 
             <Stack spacing={1} mb={2}>
               <Stack direction="row" justifyContent="space-between">
@@ -111,7 +111,7 @@ export const OrderSuccessPage = () => {
               </Stack>
               <Stack direction="row" justifyContent="space-between">
                 <Typography variant="body2" color="text.secondary">Total Paid:</Typography>
-                <Typography variant="subtitle1" fontWeight={800} color="primary.main">
+                <Typography variant="subtitle1" fontWeight={800} color="#000000">
                   ${order.pricing?.total?.toFixed(2)}
                 </Typography>
               </Stack>
@@ -126,7 +126,14 @@ export const OrderSuccessPage = () => {
             variant="contained"
             size="large"
             startIcon={<ReceiptLongOutlinedIcon />}
-            sx={{ borderRadius: 2.5, px: 3 }}
+            sx={{
+              borderRadius: 0,
+              backgroundColor: '#000000',
+              color: '#ffffff',
+              px: 3,
+              letterSpacing: '0.04em',
+              '&:hover': { backgroundColor: '#262626' },
+            }}
           >
             View Order Status
           </Button>
@@ -136,7 +143,14 @@ export const OrderSuccessPage = () => {
             variant="outlined"
             size="large"
             startIcon={<StorefrontOutlinedIcon />}
-            sx={{ borderRadius: 2.5, px: 3 }}
+            sx={{
+              borderRadius: 0,
+              borderColor: '#000000',
+              color: '#000000',
+              px: 3,
+              letterSpacing: '0.04em',
+              '&:hover': { backgroundColor: '#000000', color: '#ffffff' },
+            }}
           >
             Continue Shopping
           </Button>

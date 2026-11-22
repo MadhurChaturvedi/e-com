@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, Link as RouterLink, useLocation } from 'react-router-dom';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
@@ -20,10 +20,8 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Stack from '@mui/material/Stack';
 import Chip from '@mui/material/Chip';
-import Paper from '@mui/material/Paper';
 import LinearProgress from '@mui/material/LinearProgress';
-import ClickAwayListener from '@mui/material/ClickAwayListener';
-import CircularProgress from '@mui/material/CircularProgress';
+import Tooltip from '@mui/material/Tooltip';
 
 // Icons
 import SearchIcon from '@mui/icons-material/Search';
@@ -31,33 +29,34 @@ import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
-import StorefrontIcon from '@mui/icons-material/Storefront';
+import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
-import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
-import VerifiedUserOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined';
-import SupportAgentOutlinedIcon from '@mui/icons-material/SupportAgentOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 import VolumeUpOutlinedIcon from '@mui/icons-material/VolumeUpOutlined';
 import VolumeOffOutlinedIcon from '@mui/icons-material/VolumeOffOutlined';
-import Tooltip from '@mui/material/Tooltip';
 
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
 import { categoryService } from '../services/categoryService';
-import { productService } from '../services/productService';
 import { MegaSearchDropdown } from '../components/common/MegaSearchDropdown';
 import { orderSound } from '../utils/orderSound';
 import { optimizeImageUrl } from '../utils/imageUrl';
 import { api } from '../services/api';
 
+/**
+ * Editorial Store Layout
+ * Implements DESIGN.md:
+ * - Store locator bar: full-width #E6E6E6 band with location icon, descriptive text, underlined link
+ * - Navigation header: white background, persistent red logotype anchor (#EB0010),
+ *   horizontal category links ({typography.navigation}), utility icons clustered on far right
+ * - Flat rectilinear materiality: zero border-radius, no elevation shadows
+ */
 export const StoreLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -68,13 +67,12 @@ export const StoreLayout = () => {
   const [categories, setCategories] = useState([]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [accountAnchorEl, setAccountAnchorEl] = useState(null);
   const [isSoundMuted, setIsSoundMuted] = useState(orderSound.isMuted());
   const [cacheStatus, setCacheStatus] = useState({
     mode: 'redis',
     redisConnected: true,
-    provider: 'Redis Cloud',
-    endpoint: 'neosolid-collective-trusty-51719.db.redis.io:17740',
   });
 
   useEffect(() => {
@@ -125,22 +123,22 @@ export const StoreLayout = () => {
   const amountNeededForFreeShipping = Math.max(0, freeShippingThreshold - currentSubtotal);
 
   return (
-    <Box className="store-shell" sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: 'background.default' }}>
-      {/* Top Announcement Bar with Live Redis Indicator */}
+    <Box className="store-shell" sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#ffffff' }}>
+      {/* 1. Store Locator Bar (Full-width #E6E6E6 surface band as defined in DESIGN.md) */}
       <Box
         sx={{
-          backgroundColor: '#0f172a',
-          color: '#f8fafc',
-          py: 0.55,
-          px: 2,
-          fontSize: '0.76rem',
-          fontWeight: 600,
-          letterSpacing: '0.02em',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          backgroundColor: '#e6e6e6',
+          color: '#000000',
+          py: 0.8,
+          px: { xs: 2, md: 3 },
+          fontSize: '0.8125rem', // body-small token
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          borderBottom: '1px solid #d4d4d4',
         }}
       >
         <Container
           maxWidth="xl"
+          disableGutters
           sx={{
             display: 'flex',
             alignItems: 'center',
@@ -149,43 +147,41 @@ export const StoreLayout = () => {
             gap: 1,
           }}
         >
-          <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
-            Free Express Delivery on orders over $50 &bull; Use voucher{' '}
-            <Box component="span" sx={{ color: '#818cf8', fontWeight: 800 }}>
-              WELCOME10
-            </Box>{' '}
-            for 10% off your purchase.
-          </Box>
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
-            <Tooltip
-              title={`Backend connected to Redis Cloud: ${cacheStatus?.endpoint || 'neosolid-collective-trusty-51719.db.redis.io:17740'} • Sub-millisecond response caching active`}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, fontSize: '0.8125rem' }}>
+            <PlaceOutlinedIcon sx={{ fontSize: '1rem', color: '#000000' }} />
+            <span>Find a store near you &bull; Free delivery on orders over $50</span>
+            <Box
+              component={RouterLink}
+              to="/shop"
+              sx={{
+                color: '#000000',
+                textDecoration: 'underline',
+                fontWeight: 600,
+                ml: 0.5,
+                '&:hover': { color: '#737373' },
+              }}
             >
+              Shop now
+            </Box>
+          </Box>
+
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1.5 }}>
+            <Box component="span" sx={{ color: '#737373', fontSize: '0.75rem' }}>
+              Customer Service &bull; Newsletter
+            </Box>
+            <Tooltip title="Redis Cache Engine Status">
               <Chip
                 size="small"
-                icon={
-                  <Box
-                    component="span"
-                    sx={{
-                      width: 7,
-                      height: 7,
-                      borderRadius: '50%',
-                      bgcolor: '#10b981',
-                      display: 'inline-block',
-                      ml: 1,
-                      boxShadow: '0 0 8px #10b981',
-                    }}
-                  />
-                }
-                label={cacheStatus?.mode === 'redis' ? '⚡ Redis Cloud Connected' : '⚡ Redis Accelerated'}
+                label={cacheStatus?.mode === 'redis' ? '⚡ Redis Active' : '⚡ Cache Ready'}
                 sx={{
-                  height: 22,
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  color: '#38bdf8',
-                  border: '1px solid rgba(56, 189, 248, 0.35)',
-                  bgcolor: 'rgba(56, 189, 248, 0.1)',
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: 'rgba(56, 189, 248, 0.2)' },
+                  height: 20,
+                  fontSize: '0.65rem',
+                  borderRadius: 0,
+                  border: '1px solid #000000',
+                  backgroundColor: '#ffffff',
+                  color: '#000000',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
                 }}
               />
             </Tooltip>
@@ -193,189 +189,196 @@ export const StoreLayout = () => {
         </Container>
       </Box>
 
-      {/* Main Header AppBar */}
-      <AppBar position="sticky" elevation={0} sx={{ borderBottom: '1px solid rgba(226, 232, 240, 0.8)' }}>
-        <Container maxWidth="xl">
-          <Toolbar disableGutters sx={{ minHeight: { xs: 58, md: 64 }, gap: { xs: 1.5, md: 3 } }}>
-            {/* Mobile Hamburger */}
-            <IconButton
-              color="inherit"
-              edge="start"
-              onClick={() => setMobileOpen(true)}
-              sx={{ display: { md: 'none' }, color: 'text.primary' }}
-            >
-              <MenuIcon />
-            </IconButton>
+      {/* 2. Main Navigation Header (White background, no shadow, red brand logotype) */}
+      <AppBar
+        position="sticky"
+        elevation={0}
+        sx={{
+          backgroundColor: '#ffffff',
+          color: '#000000',
+          borderBottom: '1px solid #e6e6e6',
+          boxShadow: 'none',
+        }}
+      >
+        <Container maxWidth="xl" disableGutters sx={{ px: { xs: 2, md: 3 } }}>
+          <Toolbar disableGutters sx={{ minHeight: { xs: 60, md: 72 }, justifyContent: 'space-between' }}>
+            {/* Left: Mobile Menu & Red Brand Logotype */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <IconButton
+                color="inherit"
+                edge="start"
+                onClick={() => setMobileOpen(true)}
+                sx={{ display: { md: 'none' }, color: '#000000', p: 0.5 }}
+                aria-label="open mobile navigation"
+              >
+                <MenuIcon />
+              </IconButton>
 
-            {/* Brand Logo & Name */}
-            <Box
-              component={RouterLink}
-              to="/"
+              {/* Red Logotype Anchor as defined in DESIGN.md */}
+              <Box
+                component={RouterLink}
+                to="/"
+                sx={{
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <Typography
+                  component="span"
+                  sx={{
+                    fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif",
+                    fontWeight: 900,
+                    fontSize: { xs: '1.5rem', md: '1.85rem' },
+                    letterSpacing: '-0.04em',
+                    color: '#eb0010', // Red logotype persistent anchor
+                    textTransform: 'uppercase',
+                    lineHeight: 1,
+                  }}
+                >
+                  NOVA
+                </Typography>
+                <Typography
+                  component="span"
+                  sx={{
+                    fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif",
+                    fontWeight: 300,
+                    fontSize: { xs: '1.5rem', md: '1.85rem' },
+                    letterSpacing: '0.02em',
+                    color: '#000000',
+                    textTransform: 'uppercase',
+                    lineHeight: 1,
+                    ml: 0.5,
+                  }}
+                >
+                  STORE
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Center: Category Links in single horizontal row (typography.navigation: 0.875rem, uppercase) */}
+            <Stack
+              direction="row"
+              spacing={3}
               sx={{
-                display: 'flex',
+                display: { xs: 'none', md: 'flex' },
                 alignItems: 'center',
-                gap: 1.2,
-                textDecoration: 'none',
-                color: 'inherit',
-                mr: { xs: 0, lg: 2 },
+                mx: 'auto',
               }}
             >
               <Box
-                sx={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 2,
-                  background: 'linear-gradient(135deg, #0f172a 0%, #4f46e5 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ffffff',
-                  boxShadow: '0 3px 10px rgba(79, 70, 229, 0.28)',
-                }}
-              >
-                <StorefrontIcon sx={{ fontSize: '1.15rem' }} />
-              </Box>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 800,
-                  fontSize: '1.3rem',
-                  letterSpacing: '-0.035em',
-                  color: '#0f172a',
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                Nova<Box component="span" sx={{ color: '#4f46e5' }}>Store</Box>
-              </Typography>
-            </Box>
-
-            {/* Desktop Navigation Links */}
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{ display: { xs: 'none', lg: 'flex' }, alignItems: 'center' }}
-            >
-              <Button
-                component={RouterLink}
-                to="/"
-                color="inherit"
-                sx={{
-                  fontWeight: location.pathname === '/' ? 800 : 600,
-                  color: location.pathname === '/' ? '#4f46e5' : 'text.primary',
-                  borderRadius: 2,
-                }}
-              >
-                Home
-              </Button>
-              <Button
                 component={RouterLink}
                 to="/shop"
-                color="inherit"
                 sx={{
-                  fontWeight: location.pathname === '/shop' ? 800 : 600,
-                  color: location.pathname === '/shop' ? '#4f46e5' : 'text.primary',
-                  borderRadius: 2,
+                  fontSize: '0.875rem',
+                  fontWeight: location.pathname === '/shop' && !location.search ? 700 : 400,
+                  color: '#000000',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  textDecoration: location.pathname === '/shop' && !location.search ? 'underline' : 'none',
+                  textUnderlineOffset: '6px',
+                  '&:hover': { color: '#737373' },
                 }}
               >
-                Catalog
-              </Button>
-              <Button
-                component={RouterLink}
-                to="/shop?filter=featured"
-                color="inherit"
-                sx={{ fontWeight: 600, color: 'text.primary', borderRadius: 2 }}
-              >
-                Featured
-              </Button>
-              <Button
+                All Products
+              </Box>
+
+              <Box
                 component={RouterLink}
                 to="/shop?filter=trending"
-                color="inherit"
-                sx={{ fontWeight: 600, color: 'text.primary', borderRadius: 2 }}
+                sx={{
+                  fontSize: '0.875rem',
+                  fontWeight: location.search.includes('trending') ? 700 : 400,
+                  color: '#000000',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  textDecoration: location.search.includes('trending') ? 'underline' : 'none',
+                  textUnderlineOffset: '6px',
+                  '&:hover': { color: '#737373' },
+                }}
               >
                 Trending
-              </Button>
+              </Box>
+
+              <Box
+                component={RouterLink}
+                to="/shop?filter=featured"
+                sx={{
+                  fontSize: '0.875rem',
+                  fontWeight: location.search.includes('featured') ? 700 : 400,
+                  color: '#000000',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  textDecoration: location.search.includes('featured') ? 'underline' : 'none',
+                  textUnderlineOffset: '6px',
+                  '&:hover': { color: '#737373' },
+                }}
+              >
+                Campaign
+              </Box>
+
+              {categories.slice(0, 4).map((cat) => (
+                <Box
+                  key={cat._id}
+                  component={RouterLink}
+                  to={`/shop?category=${cat.slug}`}
+                  sx={{
+                    fontSize: '0.875rem',
+                    fontWeight: location.search.includes(cat.slug) ? 700 : 400,
+                    color: '#000000',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    textDecoration: location.search.includes(cat.slug) ? 'underline' : 'none',
+                    textUnderlineOffset: '6px',
+                    '&:hover': { color: '#737373' },
+                  }}
+                >
+                  {cat.name}
+                </Box>
+              ))}
             </Stack>
 
-            {/* Google-style Mega Dropdown Search */}
-            <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, justifyContent: 'center', mx: { xs: 0, md: 3 } }}>
-              <MegaSearchDropdown />
-            </Box>
+            {/* Right: Utility Icons clustered at far right (Search, Sound, Account, Wishlist, Cart) */}
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              {/* Search Toggle */}
+              <IconButton
+                onClick={() => setSearchOpen((prev) => !prev)}
+                color="inherit"
+                size="small"
+                aria-label="search catalog"
+                sx={{ color: '#000000', p: 0.8 }}
+              >
+                <SearchIcon sx={{ fontSize: '1.25rem' }} />
+              </IconButton>
 
-            {/* Action Icons: Wishlist, Cart Drawer Trigger, Profile */}
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
-              {/* Order Sound Mute/Unmute Toggle */}
-              <Tooltip title={isSoundMuted ? 'Order chime: Muted (Click to unmute)' : 'Order chime: Active (Click to mute)'}>
+              {/* Order Sound Chime Toggle */}
+              <Tooltip title={isSoundMuted ? 'Order chime: Muted' : 'Order chime: Active'}>
                 <IconButton
                   onClick={handleToggleSound}
                   color="inherit"
                   size="small"
-                  aria-label="toggle order sound"
-                  sx={{
-                    color: isSoundMuted ? 'text.disabled' : 'text.secondary',
-                    transition: 'all 0.2s ease',
-                    '&:hover': { color: 'primary.main', transform: 'scale(1.08)' },
-                  }}
+                  aria-label="toggle order sound chime"
+                  sx={{ color: isSoundMuted ? '#737373' : '#000000', p: 0.8 }}
                 >
-                  {isSoundMuted ? <VolumeOffOutlinedIcon fontSize="small" /> : <VolumeUpOutlinedIcon fontSize="small" />}
+                  {isSoundMuted ? (
+                    <VolumeOffOutlinedIcon sx={{ fontSize: '1.2rem' }} />
+                  ) : (
+                    <VolumeUpOutlinedIcon sx={{ fontSize: '1.2rem' }} />
+                  )}
                 </IconButton>
               </Tooltip>
 
-              {/* Wishlist Icon */}
-              <IconButton
-                component={RouterLink}
-                to="/wishlist"
-                color="inherit"
-                sx={{
-                  color: 'text.secondary',
-                  transition: 'color 0.2s ease',
-                  '&:hover': { color: '#ef4444' },
-                }}
-              >
-                <Badge badgeContent={wishlistCount} color="error" max={99}>
-                  <FavoriteBorderIcon fontSize="small" />
-                </Badge>
-              </IconButton>
-
-              {/* Cart Drawer Trigger Button */}
-              <IconButton
-                onClick={() => setCartDrawerOpen(true)}
-                color="inherit"
-                sx={{
-                  color: 'text.secondary',
-                  transition: 'color 0.2s ease',
-                  '&:hover': { color: 'secondary.main' },
-                }}
-              >
-                <Badge badgeContent={itemCount} color="primary" max={99}>
-                  <ShoppingBagOutlinedIcon fontSize="small" />
-                </Badge>
-              </IconButton>
-
-              {/* Profile / Account Menu */}
+              {/* Account / User Menu */}
               {isAuthenticated ? (
                 <>
-                  <Button
-                    onClick={handleAccountMenuOpen}
-                    color="inherit"
-                    startIcon={<PersonOutlineOutlinedIcon />}
-                    sx={{
-                      fontWeight: 700,
-                      color: 'text.primary',
-                      display: { xs: 'none', sm: 'inline-flex' },
-                      borderRadius: 2,
-                    }}
-                  >
-                    {user?.name?.split(' ')[0] || 'Account'}
-                  </Button>
-
                   <IconButton
                     onClick={handleAccountMenuOpen}
                     color="inherit"
-                    sx={{ display: { xs: 'inline-flex', sm: 'none' } }}
+                    size="small"
+                    aria-label="account menu"
+                    sx={{ color: '#000000', p: 0.8 }}
                   >
-                    <PersonOutlineOutlinedIcon />
+                    <PersonOutlineOutlinedIcon sx={{ fontSize: '1.35rem' }} />
                   </IconButton>
 
                   <Menu
@@ -385,12 +388,11 @@ export const StoreLayout = () => {
                     transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                     anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                     PaperProps={{
-                      elevation: 4,
-                      sx: { minWidth: 220, mt: 1.5, borderRadius: 3, p: 0.5 },
+                      sx: { minWidth: 220, mt: 1, borderRadius: 0, border: '1px solid #000000', p: 0.5 },
                     }}
                   >
                     <Box sx={{ px: 2, py: 1.5 }}>
-                      <Typography variant="subtitle2" fontWeight={800}>
+                      <Typography variant="subtitle2" fontWeight={700}>
                         {user?.name}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
@@ -407,9 +409,9 @@ export const StoreLayout = () => {
                         }}
                       >
                         <ListItemIcon>
-                          <DashboardOutlinedIcon fontSize="small" color="primary" />
+                          <DashboardOutlinedIcon fontSize="small" sx={{ color: '#000000' }} />
                         </ListItemIcon>
-                        <ListItemText primary="Admin Dashboard" primaryTypographyProps={{ fontWeight: 700 }} />
+                        <ListItemText primary="Admin Console" primaryTypographyProps={{ fontWeight: 700 }} />
                       </MenuItem>
                     )}
 
@@ -438,102 +440,119 @@ export const StoreLayout = () => {
                     </MenuItem>
 
                     <Divider sx={{ my: 0.5 }} />
-                    <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
+                    <MenuItem onClick={handleLogout} sx={{ color: '#eb0010' }}>
                       <ListItemIcon>
-                        <LogoutOutlinedIcon fontSize="small" color="error" />
+                        <LogoutOutlinedIcon fontSize="small" sx={{ color: '#eb0010' }} />
                       </ListItemIcon>
                       <ListItemText primary="Sign Out" />
                     </MenuItem>
                   </Menu>
                 </>
               ) : (
-                <Button
+                <IconButton
                   component={RouterLink}
                   to="/login"
-                  variant="contained"
-                  color="primary"
+                  color="inherit"
                   size="small"
-                  sx={{
-                    borderRadius: 2,
-                    px: { xs: 2, sm: 2.5 },
-                    minWidth: 'max-content',
-                    fontWeight: 700,
-                  }}
+                  aria-label="sign in"
+                  sx={{ color: '#000000', p: 0.8 }}
                 >
-                  Sign In
-                </Button>
+                  <PersonOutlineOutlinedIcon sx={{ fontSize: '1.35rem' }} />
+                </IconButton>
               )}
+
+              {/* Wishlist Icon */}
+              <IconButton
+                component={RouterLink}
+                to="/wishlist"
+                color="inherit"
+                size="small"
+                aria-label="wishlist"
+                sx={{ color: '#000000', p: 0.8 }}
+              >
+                <Badge
+                  badgeContent={wishlistCount}
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      backgroundColor: '#eb0010',
+                      color: '#ffffff',
+                      borderRadius: 0,
+                      fontSize: '0.65rem',
+                      height: 16,
+                      minWidth: 16,
+                    },
+                  }}
+                  max={99}
+                >
+                  <FavoriteBorderIcon sx={{ fontSize: '1.3rem' }} />
+                </Badge>
+              </IconButton>
+
+              {/* Cart Drawer Trigger */}
+              <IconButton
+                onClick={() => setCartDrawerOpen(true)}
+                color="inherit"
+                size="small"
+                aria-label="shopping cart"
+                sx={{ color: '#000000', p: 0.8 }}
+              >
+                <Badge
+                  badgeContent={itemCount}
+                  sx={{
+                    '& .MuiBadge-badge': {
+                      backgroundColor: '#000000',
+                      color: '#ffffff',
+                      borderRadius: 0,
+                      fontSize: '0.65rem',
+                      height: 16,
+                      minWidth: 16,
+                    },
+                  }}
+                  max={99}
+                >
+                  <ShoppingBagOutlinedIcon sx={{ fontSize: '1.3rem' }} />
+                </Badge>
+              </IconButton>
             </Stack>
           </Toolbar>
 
-          {/* Mobile Mega Search Bar */}
-          <Box sx={{ display: { xs: 'block', md: 'none' }, pb: 1.5, px: 0.5 }}>
-            <MegaSearchDropdown fullWidthMobile />
-          </Box>
-
-          {/* Sub-header Categories Bar (Desktop) */}
-          <Box
-            sx={{
-              display: { xs: 'none', lg: 'flex' },
-              alignItems: 'center',
-              gap: 1.5,
-              py: 0.9,
-              borderTop: '1px solid rgba(226, 232, 240, 0.7)',
-              overflowX: 'auto',
-            }}
-          >
-            <Typography variant="caption" fontWeight={800} color="text.secondary" textTransform="uppercase" letterSpacing="0.06em">
-              Departments:
-            </Typography>
-            {categories.map((cat) => (
-              <Button
-                key={cat._id}
-                component={RouterLink}
-                to={`/shop?category=${cat.slug}`}
-                size="small"
-                color="inherit"
-                sx={{
-                  color: 'text.secondary',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  borderRadius: 2,
-                  py: 0.4,
-                  px: 1.2,
-                  '&:hover': { color: 'secondary.main', backgroundColor: 'rgba(79, 70, 229, 0.06)' },
-                }}
-              >
-                {cat.name}
-              </Button>
-            ))}
-          </Box>
+          {/* Collapsible Search Dropdown */}
+          {searchOpen && (
+            <Box sx={{ pb: 2, pt: 1, borderTop: '1px solid #e6e6e6' }}>
+              <MegaSearchDropdown fullWidthMobile />
+            </Box>
+          )}
         </Container>
       </AppBar>
 
-      {/* Slide-over Mini-Cart Drawer */}
+      {/* Slide-over Mini-Cart Drawer (Rectilinear, #E6E6E6 thumbnails, flat zero-border-radius) */}
       <Drawer
         anchor="right"
         open={cartDrawerOpen}
         onClose={() => setCartDrawerOpen(false)}
         PaperProps={{
           sx: {
-            width: { xs: '100%', sm: 400 },
+            width: { xs: '100%', sm: 420 },
             p: 3,
             display: 'flex',
             flexDirection: 'column',
+            borderRadius: 0,
+            boxShadow: 'none',
+            borderLeft: '1px solid #000000',
           },
         }}
       >
         {/* Cart Drawer Header */}
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
           <Box>
-            <Typography variant="h6" fontWeight={800}>
+            <Typography variant="h5" sx={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Shopping Bag
             </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {itemCount} {itemCount === 1 ? 'item' : 'items'} in your cart
+            <Typography variant="caption" sx={{ color: '#737373' }}>
+              {itemCount} {itemCount === 1 ? 'item' : 'items'}
             </Typography>
           </Box>
-          <IconButton onClick={() => setCartDrawerOpen(false)} size="small">
+          <IconButton onClick={() => setCartDrawerOpen(false)} size="small" sx={{ borderRadius: 0 }}>
             <CloseIcon />
           </IconButton>
         </Stack>
@@ -541,25 +560,22 @@ export const StoreLayout = () => {
         <Divider sx={{ mb: 2 }} />
 
         {/* Free Shipping Progress Meter */}
-        <Box sx={{ mb: 2.5, p: 2, borderRadius: 2.5, backgroundColor: '#f8fafc', border: '1px solid rgba(226, 232, 240, 0.8)' }}>
-          <Stack direction="row" spacing={1} alignItems="center" mb={1}>
-            <LocalShippingOutlinedIcon sx={{ fontSize: '1.1rem', color: progressToFreeShipping >= 100 ? '#10b981' : '#4f46e5' }} />
-            <Typography variant="caption" fontWeight={700}>
-              {progressToFreeShipping >= 100
-                ? '🎉 Congratulations! You unlocked Free Shipping!'
-                : `Add $${amountNeededForFreeShipping.toFixed(2)} more to unlock Free Express Shipping`}
-            </Typography>
-          </Stack>
+        <Box sx={{ mb: 2.5, p: 2, backgroundColor: '#e6e6e6', borderRadius: 0 }}>
+          <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1, color: '#000000' }}>
+            {progressToFreeShipping >= 100
+              ? 'Free standard shipping unlocked!'
+              : `Add $${amountNeededForFreeShipping.toFixed(2)} more for Free Standard Delivery`}
+          </Typography>
           <LinearProgress
             variant="determinate"
             value={progressToFreeShipping}
             sx={{
-              height: 6,
-              borderRadius: 3,
-              backgroundColor: '#e2e8f0',
+              height: 4,
+              borderRadius: 0,
+              backgroundColor: '#ffffff',
               '& .MuiLinearProgress-bar': {
-                backgroundColor: progressToFreeShipping >= 100 ? '#10b981' : '#4f46e5',
-                borderRadius: 3,
+                backgroundColor: '#000000',
+                borderRadius: 0,
               },
             }}
           />
@@ -580,7 +596,7 @@ export const StoreLayout = () => {
                   (Array.isArray(item.images) && item.images[0]) ||
                   item.image ||
                   '';
-                const displayImage = optimizeImageUrl(rawImage, { width: 140, quality: 75 });
+                const displayImage = optimizeImageUrl(rawImage, { width: 160, quality: 75 });
 
                 return (
                   <Box
@@ -589,9 +605,9 @@ export const StoreLayout = () => {
                       display: 'flex',
                       gap: 2,
                       p: 1.5,
-                      borderRadius: 2.5,
+                      borderRadius: 0,
                       backgroundColor: '#ffffff',
-                      border: '1px solid rgba(226, 232, 240, 0.8)',
+                      border: '1px solid #e6e6e6',
                     }}
                   >
                     <Box
@@ -600,62 +616,69 @@ export const StoreLayout = () => {
                       alt={prodName}
                       loading="lazy"
                       decoding="async"
-                      sx={{ width: 68, height: 68, borderRadius: 2, objectFit: 'cover', flexShrink: 0 }}
+                      sx={{
+                        width: 72,
+                        height: 96,
+                        borderRadius: 0,
+                        backgroundColor: '#e6e6e6',
+                        objectFit: 'cover',
+                        flexShrink: 0,
+                      }}
                     />
-                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Box sx={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                       <Typography
                         component={RouterLink}
                         to={`/product/${prod.slug || prod._id || itemId}`}
                         onClick={() => setCartDrawerOpen(false)}
-                        variant="subtitle2"
-                        fontWeight={700}
-                        noWrap
+                        variant="subtitle1"
                         sx={{
-                          display: 'block',
-                          maxWidth: 180,
-                          color: 'text.primary',
+                          fontSize: '0.875rem',
+                          color: '#000000',
                           textDecoration: 'none',
-                          '&:hover': { color: 'primary.main' },
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          '&:hover': { color: '#737373' },
                         }}
                       >
                         {prodName}
                       </Typography>
-                      <Typography variant="caption" fontWeight={800} color="secondary.main">
+                      <Typography variant="subtitle2" sx={{ fontSize: '0.8125rem', color: '#000000', mt: 0.5 }}>
                         ${prodPrice.toFixed(2)}
                       </Typography>
 
-                      <Stack direction="row" alignItems="center" spacing={1} mt={1}>
+                      <Stack direction="row" alignItems="center" spacing={1} mt="auto">
                         <Box
                           sx={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            borderRadius: 1.5,
-                            border: '1px solid #e2e8f0',
+                            borderRadius: 0,
+                            border: '1px solid #000000',
                           }}
                         >
                           <IconButton
                             size="small"
                             onClick={() => updateQuantity(itemId, item.quantity - 1)}
-                            sx={{ p: '2px' }}
+                            sx={{ p: '2px', borderRadius: 0 }}
                           >
-                            <RemoveIcon sx={{ fontSize: '0.8rem' }} />
+                            <RemoveIcon sx={{ fontSize: '0.75rem' }} />
                           </IconButton>
-                          <Typography variant="caption" fontWeight={700} sx={{ px: 1 }}>
+                          <Typography variant="caption" sx={{ px: 1, fontWeight: 600 }}>
                             {item.quantity}
                           </Typography>
                           <IconButton
                             size="small"
                             onClick={() => updateQuantity(itemId, item.quantity + 1)}
-                            sx={{ p: '2px' }}
+                            sx={{ p: '2px', borderRadius: 0 }}
                           >
-                            <AddIcon sx={{ fontSize: '0.8rem' }} />
+                            <AddIcon sx={{ fontSize: '0.75rem' }} />
                           </IconButton>
                         </Box>
 
                         <IconButton
                           size="small"
                           onClick={() => removeFromCart(itemId)}
-                          sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' }, ml: 'auto' }}
+                          sx={{ color: '#737373', '&:hover': { color: '#eb0010' }, ml: 'auto', borderRadius: 0 }}
                         >
                           <DeleteOutlineIcon fontSize="small" />
                         </IconButton>
@@ -667,23 +690,22 @@ export const StoreLayout = () => {
             </Stack>
           ) : (
             <Box textAlign="center" py={8}>
-              <ShoppingBagOutlinedIcon sx={{ fontSize: 48, color: '#94a3b8', mb: 1.5 }} />
-              <Typography variant="subtitle1" fontWeight={700}>
-                Your cart is empty
+              <ShoppingBagOutlinedIcon sx={{ fontSize: 44, color: '#737373', mb: 1.5 }} />
+              <Typography variant="h6" sx={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Your Bag is Empty
               </Typography>
-              <Typography variant="body2" color="text.secondary" mb={3}>
-                Explore our catalog to find your favorite products.
+              <Typography variant="body2" sx={{ color: '#737373', mb: 3 }}>
+                Discover our latest collections and wardrobe essentials.
               </Typography>
               <Button
-                variant="contained"
-                color="secondary"
+                variant="outlined"
                 onClick={() => {
                   setCartDrawerOpen(false);
                   navigate('/shop');
                 }}
-                sx={{ borderRadius: 2 }}
+                sx={{ borderRadius: 0 }}
               >
-                Start Shopping
+                Shop Now
               </Button>
             </Box>
           )}
@@ -691,23 +713,22 @@ export const StoreLayout = () => {
 
         {/* Cart Drawer Checkout Footer */}
         {cart.items && cart.items.length > 0 && (
-          <Box sx={{ pt: 2, borderTop: '1px solid rgba(226, 232, 240, 0.8)' }}>
+          <Box sx={{ pt: 2, borderTop: '1px solid #e6e6e6' }}>
             <Stack direction="row" justifyContent="space-between" mb={1}>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: '#737373' }}>
                 Subtotal
               </Typography>
-              <Typography variant="h6" fontWeight={800}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                 ${currentSubtotal.toFixed(2)}
               </Typography>
             </Stack>
-            <Typography variant="caption" color="text.secondary" display="block" mb={2}>
-              Taxes and shipping calculated at checkout.
+            <Typography variant="caption" sx={{ color: '#737373', display: 'block', mb: 2 }}>
+              Delivery and taxes calculated at checkout.
             </Typography>
 
             <Button
               fullWidth
               variant="contained"
-              color="secondary"
               size="large"
               onClick={() => {
                 setCartDrawerOpen(false);
@@ -715,13 +736,13 @@ export const StoreLayout = () => {
               }}
               sx={{
                 py: 1.4,
-                borderRadius: 2.5,
-                fontWeight: 800,
-                boxShadow: '0 8px 20px rgba(79, 70, 229, 0.4)',
-                mb: 1.5,
+                borderRadius: 0,
+                backgroundColor: '#000000',
+                color: '#ffffff',
+                mb: 1,
               }}
             >
-              Checkout Now &rarr;
+              Continue to Checkout
             </Button>
 
             <Button
@@ -732,9 +753,9 @@ export const StoreLayout = () => {
                 setCartDrawerOpen(false);
                 navigate('/cart');
               }}
-              sx={{ borderRadius: 2, fontWeight: 700 }}
+              sx={{ borderRadius: 0 }}
             >
-              View Full Cart
+              View Shopping Bag
             </Button>
           </Box>
         )}
@@ -745,46 +766,61 @@ export const StoreLayout = () => {
         anchor="left"
         open={mobileOpen}
         onClose={() => setMobileOpen(false)}
-        PaperProps={{ sx: { width: 290, p: 2.5 } }}
+        PaperProps={{ sx: { width: 300, p: 3, borderRadius: 0 } }}
       >
-        <Typography variant="h5" fontWeight={800} color="#0f172a" mb={2}>
-          Nova<Box component="span" sx={{ color: '#4f46e5' }}>Store</Box>
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+          <Typography
+            sx={{
+              fontFamily: "'Outfit', sans-serif",
+              fontWeight: 900,
+              fontSize: '1.4rem',
+              color: '#eb0010',
+              textTransform: 'uppercase',
+            }}
+          >
+            NOVA<Box component="span" sx={{ color: '#000000', fontWeight: 300 }}>STORE</Box>
+          </Typography>
+        </Box>
         <Divider sx={{ mb: 2 }} />
-        <List>
+        <List disablePadding>
           <ListItem disablePadding>
             <ListItemButton component={RouterLink} to="/" onClick={() => setMobileOpen(false)}>
-              <ListItemText primary="Home" primaryTypographyProps={{ fontWeight: 700 }} />
+              <ListItemText primary="Home" primaryTypographyProps={{ textTransform: 'uppercase', letterSpacing: '0.04em' }} />
             </ListItemButton>
           </ListItem>
           <ListItem disablePadding>
             <ListItemButton component={RouterLink} to="/shop" onClick={() => setMobileOpen(false)}>
-              <ListItemText primary="Shop All" primaryTypographyProps={{ fontWeight: 700 }} />
+              <ListItemText primary="Shop All" primaryTypographyProps={{ textTransform: 'uppercase', letterSpacing: '0.04em' }} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton component={RouterLink} to="/shop?filter=trending" onClick={() => setMobileOpen(false)}>
+              <ListItemText primary="Trending" primaryTypographyProps={{ textTransform: 'uppercase', letterSpacing: '0.04em' }} />
             </ListItemButton>
           </ListItem>
           <ListItem disablePadding>
             <ListItemButton component={RouterLink} to="/wishlist" onClick={() => setMobileOpen(false)}>
-              <ListItemText primary="Wishlist" primaryTypographyProps={{ fontWeight: 700 }} />
+              <ListItemText primary="Wishlist" primaryTypographyProps={{ textTransform: 'uppercase', letterSpacing: '0.04em' }} />
             </ListItemButton>
           </ListItem>
           <ListItem disablePadding>
             <ListItemButton component={RouterLink} to="/cart" onClick={() => setMobileOpen(false)}>
-              <ListItemText primary="Shopping Cart" primaryTypographyProps={{ fontWeight: 700 }} />
+              <ListItemText primary="Shopping Bag" primaryTypographyProps={{ textTransform: 'uppercase', letterSpacing: '0.04em' }} />
             </ListItemButton>
           </ListItem>
           {isAdmin && (
             <ListItem disablePadding>
               <ListItemButton component={RouterLink} to="/admin" onClick={() => setMobileOpen(false)}>
-                <ListItemText primary="Admin Dashboard" sx={{ color: 'secondary.main', fontWeight: 800 }} />
+                <ListItemText primary="Admin Console" primaryTypographyProps={{ color: '#eb0010', fontWeight: 700, textTransform: 'uppercase' }} />
               </ListItemButton>
             </ListItem>
           )}
         </List>
         <Divider sx={{ my: 2 }} />
-        <Typography variant="caption" fontWeight={800} color="text.secondary" px={2} textTransform="uppercase">
-          Departments
+        <Typography variant="caption" sx={{ color: '#737373', textTransform: 'uppercase', letterSpacing: '0.06em', px: 2 }}>
+          Categories
         </Typography>
-        <List>
+        <List disablePadding sx={{ mt: 1 }}>
           {categories.map((c) => (
             <ListItem key={c._id} disablePadding>
               <ListItemButton
@@ -792,74 +828,31 @@ export const StoreLayout = () => {
                 to={`/shop?category=${c.slug}`}
                 onClick={() => setMobileOpen(false)}
               >
-                <ListItemText primary={c.name} />
+                <ListItemText primary={c.name} primaryTypographyProps={{ fontSize: '0.875rem' }} />
               </ListItemButton>
             </ListItem>
           ))}
         </List>
       </Drawer>
 
-      {/* Main Page Content */}
+      {/* Main Page Outlet */}
       <Box component="main" sx={{ flexGrow: 1 }}>
         <Outlet />
       </Box>
 
-      {/* Store Features Banner */}
-      <Box sx={{ backgroundColor: '#ffffff', py: 6, borderTop: '1px solid rgba(226, 232, 240, 0.8)', mt: 8 }}>
-        <Container maxWidth="xl">
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' },
-              gap: 4,
-            }}
-          >
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Box sx={{ p: 1.5, borderRadius: 3, backgroundColor: 'rgba(79, 70, 229, 0.08)', color: 'secondary.main' }}>
-                <LocalShippingOutlinedIcon fontSize="large" />
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" fontWeight={800}>Free Express Shipping</Typography>
-                <Typography variant="caption" color="text.secondary">On all international orders over $50</Typography>
-              </Box>
-            </Stack>
-
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Box sx={{ p: 1.5, borderRadius: 3, backgroundColor: 'rgba(16, 185, 129, 0.08)', color: 'success.main' }}>
-                <VerifiedUserOutlinedIcon fontSize="large" />
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" fontWeight={800}>Authentic Guarantee</Typography>
-                <Typography variant="caption" color="text.secondary">100% verified genuine brand warranty</Typography>
-              </Box>
-            </Stack>
-
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Box sx={{ p: 1.5, borderRadius: 3, backgroundColor: 'rgba(6, 182, 212, 0.08)', color: 'info.main' }}>
-                <ShieldOutlinedIcon fontSize="large" />
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" fontWeight={800}>30-Day Easy Returns</Typography>
-                <Typography variant="caption" color="text.secondary">Zero-hassle instant store refund</Typography>
-              </Box>
-            </Stack>
-
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Box sx={{ p: 1.5, borderRadius: 3, backgroundColor: 'rgba(245, 158, 11, 0.08)', color: 'warning.main' }}>
-                <SupportAgentOutlinedIcon fontSize="large" />
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" fontWeight={800}>24/7 Dedicated Support</Typography>
-                <Typography variant="caption" color="text.secondary">Live chat and email customer assistance</Typography>
-              </Box>
-            </Stack>
-          </Box>
-        </Container>
-      </Box>
-
-      {/* Global Luxury Footer */}
-      <Box sx={{ backgroundColor: '#0f172a', color: '#f8fafc', pt: 8, pb: 4, borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
-        <Container maxWidth="xl">
+      {/* Editorial Minimalist Footer as defined in DESIGN.md */}
+      <Box
+        component="footer"
+        sx={{
+          backgroundColor: '#ffffff',
+          color: '#000000',
+          pt: 8,
+          pb: 4,
+          borderTop: '1px solid #000000',
+          mt: 8,
+        }}
+      >
+        <Container maxWidth="xl" disableGutters sx={{ px: { xs: 2, md: 3 } }}>
           <Box
             sx={{
               display: 'grid',
@@ -868,113 +861,127 @@ export const StoreLayout = () => {
               mb: 6,
             }}
           >
-            {/* Col 1: Store Brand */}
+            {/* Col 1: Brand & Editorial Statement */}
             <Box>
-              <Typography variant="h5" fontWeight={800} color="#ffffff" mb={1.5}>
-                Nova<Box component="span" sx={{ color: '#818cf8' }}>Store</Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Typography
+                  sx={{
+                    fontFamily: "'Outfit', sans-serif",
+                    fontWeight: 900,
+                    fontSize: '1.4rem',
+                    color: '#eb0010',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  NOVA<Box component="span" sx={{ color: '#000000', fontWeight: 300 }}>STORE</Box>
+                </Typography>
+              </Box>
+              <Typography variant="body2" sx={{ color: '#737373', maxWidth: 360, mb: 2, lineHeight: 1.6 }}>
+                Fashion and quality at the best price in a sustainable way. Discover the latest collections with global express shipping.
               </Typography>
-              <Typography variant="body2" sx={{ color: '#94a3b8', lineHeight: 1.7, maxWidth: 360, mb: 2 }}>
-                Your premier destination for high-performance electronics, modern lifestyle essentials, and authentic designer hardware.
-              </Typography>
-              <Typography variant="caption" sx={{ color: '#64748b' }}>
-                Customer Care: support@novastore.com &bull; +1 (800) 555-0199
+              <Typography variant="caption" sx={{ color: '#737373', display: 'block' }}>
+                Store locator bar &bull; Customer Care &bull; Verified Authenticity
               </Typography>
             </Box>
 
-            {/* Col 2: Navigation Links */}
+            {/* Col 2: Shop Links */}
             <Box>
-              <Typography variant="subtitle2" fontWeight={800} color="#ffffff" mb={2}>
-                Quick Links
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', mb: 2 }}>
+                Shop
               </Typography>
               <Stack spacing={1}>
-                <Typography component={RouterLink} to="/" variant="body2" sx={{ color: '#94a3b8', '&:hover': { color: '#ffffff' } }}>
-                  Home
+                <Typography component={RouterLink} to="/shop" variant="body2" sx={{ color: '#000000', '&:hover': { textDecoration: 'underline' } }}>
+                  All Products
                 </Typography>
-                <Typography component={RouterLink} to="/shop" variant="body2" sx={{ color: '#94a3b8', '&:hover': { color: '#ffffff' } }}>
-                  Product Catalog
+                <Typography component={RouterLink} to="/shop?filter=trending" variant="body2" sx={{ color: '#000000', '&:hover': { textDecoration: 'underline' } }}>
+                  Trending Now
                 </Typography>
-                <Typography component={RouterLink} to="/cart" variant="body2" sx={{ color: '#94a3b8', '&:hover': { color: '#ffffff' } }}>
+                <Typography component={RouterLink} to="/shop?filter=featured" variant="body2" sx={{ color: '#000000', '&:hover': { textDecoration: 'underline' } }}>
+                  Campaign Specials
+                </Typography>
+                <Typography component={RouterLink} to="/cart" variant="body2" sx={{ color: '#000000', '&:hover': { textDecoration: 'underline' } }}>
                   Shopping Bag
-                </Typography>
-                <Typography component={RouterLink} to="/wishlist" variant="body2" sx={{ color: '#94a3b8', '&:hover': { color: '#ffffff' } }}>
-                  My Wishlist
                 </Typography>
               </Stack>
             </Box>
 
-            {/* Col 3: Customer Account */}
+            {/* Col 3: Customer Care */}
             <Box>
-              <Typography variant="subtitle2" fontWeight={800} color="#ffffff" mb={2}>
-                Customer Support
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', mb: 2 }}>
+                Customer Service
               </Typography>
               <Stack spacing={1}>
-                <Typography component={RouterLink} to="/account/profile" variant="body2" sx={{ color: '#94a3b8', '&:hover': { color: '#ffffff' } }}>
-                  User Account
+                <Typography component={RouterLink} to="/account/profile" variant="body2" sx={{ color: '#000000', '&:hover': { textDecoration: 'underline' } }}>
+                  My Account
                 </Typography>
-                <Typography component={RouterLink} to="/account/orders" variant="body2" sx={{ color: '#94a3b8', '&:hover': { color: '#ffffff' } }}>
-                  Track Orders
+                <Typography component={RouterLink} to="/account/orders" variant="body2" sx={{ color: '#000000', '&:hover': { textDecoration: 'underline' } }}>
+                  Order Status
                 </Typography>
-                <Typography component={RouterLink} to="/account/addresses" variant="body2" sx={{ color: '#94a3b8', '&:hover': { color: '#ffffff' } }}>
-                  Shipping Addresses
+                <Typography component={RouterLink} to="/account/addresses" variant="body2" sx={{ color: '#000000', '&:hover': { textDecoration: 'underline' } }}>
+                  Delivery Addresses
                 </Typography>
-                <Typography component={RouterLink} to="/login" variant="body2" sx={{ color: '#94a3b8', '&:hover': { color: '#ffffff' } }}>
-                  Sign In / Register
+                <Typography component={RouterLink} to="/wishlist" variant="body2" sx={{ color: '#000000', '&:hover': { textDecoration: 'underline' } }}>
+                  Saved Items
                 </Typography>
               </Stack>
             </Box>
 
             {/* Col 4: Newsletter */}
             <Box>
-              <Typography variant="subtitle2" fontWeight={800} color="#ffffff" mb={1}>
-                Exclusive VIP Drops
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>
+                Become a Member
               </Typography>
-              <Typography variant="body2" sx={{ color: '#94a3b8', mb: 2 }}>
-                Subscribe to get direct notifications on flash discounts, restocks, and secret member codes.
+              <Typography variant="body2" sx={{ color: '#737373', mb: 2 }}>
+                Join now and get 10% off your second purchase with secret member benefits.
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <InputBase
                   placeholder="Enter your email"
                   sx={{
-                    px: 2,
-                    py: 1,
-                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                    borderRadius: 2,
-                    color: '#ffffff',
-                    fontSize: '0.875rem',
+                    px: 1.5,
+                    py: 0.8,
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #000000',
+                    borderRadius: 0,
+                    color: '#000000',
+                    fontSize: '0.8125rem',
                     flex: 1,
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
                   }}
                 />
-                <Button variant="contained" color="secondary" sx={{ borderRadius: 2, fontWeight: 700 }}>
+                <Button
+                  variant="contained"
+                  sx={{
+                    borderRadius: 0,
+                    backgroundColor: '#000000',
+                    color: '#ffffff',
+                    px: 2,
+                    fontSize: '0.75rem',
+                  }}
+                >
                   Join
                 </Button>
               </Box>
             </Box>
           </Box>
 
-          <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.1)', mb: 3 }} />
+          <Divider sx={{ borderColor: '#e6e6e6', mb: 3 }} />
 
-          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems="center" spacing={2}>
-            <Typography variant="caption" sx={{ color: '#64748b' }}>
-              &copy; {new Date().getFullYear()} NovaStore Full-Stack Platform. All rights reserved.
+          {/* Legal Copy & Footer Credits (typography.legal-copy: 0.75rem, light 300 weight) */}
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            justifyContent="space-between"
+            alignItems="center"
+            spacing={2}
+          >
+            <Typography variant="caption" sx={{ color: '#737373', fontSize: '0.75rem', fontWeight: 300 }}>
+              The content of this site is copyright-protected and is the property of NovaStore. All rights reserved.
             </Typography>
-            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 0.8 }}>
-              <Tooltip title={`Accelerated by Redis Cloud: ${cacheStatus?.endpoint || 'neosolid-collective-trusty-51719.db.redis.io:17740'}`}>
-                <Chip
-                  icon={<Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#10b981', display: 'inline-block', ml: 1, boxShadow: '0 0 6px #10b981' }} />}
-                  label="⚡ Redis Cloud Connected"
-                  size="small"
-                  sx={{
-                    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-                    color: '#34d399',
-                    border: '1px solid rgba(16, 185, 129, 0.35)',
-                    fontWeight: 600,
-                  }}
-                />
-              </Tooltip>
-              <Chip label="COD Available" size="small" sx={{ backgroundColor: 'rgba(255, 255, 255, 0.08)', color: '#cbd5e1' }} />
-              <Chip label="Stripe / Card Ready" size="small" sx={{ backgroundColor: 'rgba(255, 255, 255, 0.08)', color: '#cbd5e1' }} />
-              <Chip label="256-Bit Encrypted" size="small" sx={{ backgroundColor: 'rgba(255, 255, 255, 0.08)', color: '#cbd5e1' }} />
+            <Stack direction="row" spacing={1} sx={{ color: '#737373', fontSize: '0.75rem' }}>
+              <span>Privacy Policy</span>
+              <span>&bull;</span>
+              <span>Terms of Use</span>
+              <span>&bull;</span>
+              <span>Cookie Settings</span>
             </Stack>
           </Stack>
         </Container>
@@ -982,4 +989,3 @@ export const StoreLayout = () => {
     </Box>
   );
 };
-
